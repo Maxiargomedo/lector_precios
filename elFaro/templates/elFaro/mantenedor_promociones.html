@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mantenedor de Promociones</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:700,900&display=swap">
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100%;
+            background: #222d32;
+            color: #fff;
+            padding-top: 60px;
+            transform: translateX(-220px);
+            transition: transform 0.3s;
+            z-index: 2001;
+            box-shadow: 2px 0 8px rgba(44,62,80,0.08);
+        }
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        .sidebar .sidebar-link {
+            display: block;
+            padding: 16px 32px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.08rem;
+            border-left: 4px solid transparent;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .sidebar .sidebar-link:hover, .sidebar .sidebar-link.active {
+            background: #1a2226;
+            border-left: 4px solid #43a047;
+            color: #43a047;
+        }
+        .sidebar-toggle-btn {
+            background: #43a047;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            transition: background 0.2s;
+            margin-right: 1rem;
+        }
+        .sidebar-toggle-btn:hover {
+            background: #388e3c;
+        }
+        .contenido-principal {
+            transition: margin-left 0.3s;
+        }
+        .contenido-principal.shifted {
+            margin-left: 220px !important;
+        }
+        .navbar {
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            transition: margin-left 0.3s;
+            z-index: 2102;
+        }
+        .navbar .navbar-brand {
+            display: flex;
+            align-items: center;
+        }
+        @media (max-width: 600px) {
+            .sidebar {
+                width: 170px;
+                padding-top: 50px;
+                transform: translateX(-170px);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-toggle-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1.2rem;
+                margin-right: 0.5rem;
+            }
+            .contenido-principal.shifted {
+                margin-left: 170px !important;
+            }
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Montserrat', Arial, sans-serif;
+        }
+        .container {
+            max-width: 900px;
+            background: #fff;
+            border-radius: 1.2rem;
+            box-shadow: 0 8px 32px rgba(44,62,80,0.12);
+            padding: 2.5rem 2rem 2rem 2rem;
+            margin-top: 40px;
+        }
+        .title {
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #d32f2f;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .subtitle {
+            font-weight: 700;
+            color: #43a047;
+            margin-top: 2.5rem;
+            margin-bottom: 1.2rem;
+            text-align: center;
+        }
+        .promo-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            justify-content: center;
+        }
+        .promo-item {
+            background: #fafbfc;
+            border-radius: 1rem;
+            box-shadow: 0 2px 12px rgba(44,62,80,0.08);
+            padding: 1.2rem 1.2rem 0.8rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 200px;
+            max-width: 220px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e0e0e0;
+            transition: box-shadow 0.2s, border 0.2s;
+        }
+        .promo-item:hover {
+            box-shadow: 0 6px 24px rgba(44,62,80,0.18);
+            border: 1.5px solid #43a047;
+        }
+        .promo-img {
+            max-width: 180px;
+            max-height: 120px;
+            margin: 10px 0 10px 0;
+            border-radius: 8px;
+            border: 1.5px solid #bbb;
+            background: #f3f3f3;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.07);
+        }
+        .promo-item form {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        .promo-item .button.is-danger {
+            margin-top: 8px;
+            width: 90%;
+        }
+        .promo-item .promo-nombre {
+            font-size: 1rem;
+            color: #555;
+            margin-top: 0.7rem;
+            text-align: center;
+            font-weight: 600;
+            word-break: break-word;
+        }
+        .promo-item .promo-precio {
+            font-size: 1.2rem;
+            color: #43a047;
+            font-weight: bold;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .field:not(:last-child) {
+            margin-bottom: 1.2rem;
+        }
+        .button.is-success {
+            background: linear-gradient(90deg, #43a047 0%, #388e3c 100%);
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .button.is-success:hover {
+            background: linear-gradient(90deg, #388e3c 0%, #43a047 100%);
+        }
+        label.label {
+            font-weight: 700;
+            color: #d32f2f;
+            letter-spacing: 0.5px;
+        }
+        .input, .input:focus {
+            border-radius: 0.7rem;
+            border: 1px solid #bdbdbd;
+            box-shadow: none;
+            font-size: 1.1rem;
+        }
+        hr {
+            margin: 2.5rem 0 2rem 0;
+            border: none;
+            border-top: 2px solid #eee;
+        }
+        @media (max-width: 900px) {
+            .container {
+                max-width: 99vw;
+                padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+            }
+            .promo-list {
+                gap: 18px;
+            }
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 1.2rem 0.2rem 1.2rem 0.2rem;
+            }
+            .promo-item {
+                min-width: 140px;
+                max-width: 99vw;
+                padding: 0.7rem 0.3rem 0.7rem 0.3rem;
+            }
+            .promo-img {
+                max-width: 98vw;
+                max-height: 90px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <a href="{% url 'lector_precios' %}" class="sidebar-link{% if request.resolver_match.url_name == 'lector_precios' %} active{% endif %}">Lector de Barras</a>
+        <a href="{% url 'agregar_producto' %}" class="sidebar-link{% if request.resolver_match.url_name == 'agregar_producto' %} active{% endif %}">Agregar Producto</a>
+        <a href="{% url 'mantenedor_promociones' %}" class="sidebar-link{% if request.resolver_match.url_name == 'mantenedor_promociones' %} active{% endif %}">Mantenedor de Imágenes de Promociones</a>
+    </nav>
+    <div class="contenido-principal" id="contenidoPrincipal">
+        <!-- Barra de navegación superior -->
+        <nav class="navbar is-light" role="navigation" aria-label="main navigation" id="mainNavbar">
+            <div class="navbar-brand">
+                <button class="sidebar-toggle-btn" id="sidebarToggle" title="Menú" type="button">
+                    <span id="sidebarIcon">&#9776;</span>
+                </button>
+            </div>
+        </nav>
+        <section class="section">
+            <div class="container">
+                <h1 class="title">Mantenedor de Imágenes de Promociones</h1>
+                <!-- MENSAJES DE DJANGO -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="notification is-success" style="font-weight:bold;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="field">
+                        <label class="label">Subir nueva imagen</label>
+                        <div class="control">
+                            <input class="input" type="file" name="imagen" required>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Nombre (opcional)</label>
+                        <div class="control">
+                            <input class="input" type="text" name="nombre">
+                        </div>
+                    </div>
+                    <button class="button is-success" type="submit">Subir</button>
+                </form>
+                <hr>
+                <h2 class="subtitle">Imágenes actuales</h2>
+                <div class="promo-list">
+                    {% for img in imagenes %}
+                    <div class="promo-item">
+                        <img src="{{ img.imagen.url }}" class="promo-img" alt="{{ img.nombre }}">
+                        {% if img.precio %}
+                        <div class="promo-precio">{{ img.precio }}</div>
+                        {% endif %}
+                        <form method="post" style="margin-top:8px;">
+                            {% csrf_token %}
+                            <input type="hidden" name="eliminar_id" value="{{ img.id }}">
+                            <button class="button is-danger is-small" type="submit">Eliminar</button>
+                        </form>
+                        <div class="promo-nombre">{{ img.nombre }}</div>
+                    </div>
+                    {% empty %}
+                    <div>No hay imágenes.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </div>
+    <script>
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarIcon = document.getElementById('sidebarIcon');
+        const contenidoPrincipal = document.getElementById('contenidoPrincipal');
+        let sidebarOpen = false;
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            sidebar.classList.toggle('open', sidebarOpen);
+            contenidoPrincipal.classList.toggle('shifted', sidebarOpen);
+            sidebarIcon.innerHTML = sidebarOpen ? '&times;' : '&#9776;';
+        }
+
+        sidebarToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleSidebar();
+        });
+
+        // Cerrar sidebar al hacer click fuera en móviles
+        document.addEventListener('click', function(e) {
+            if (sidebarOpen && !sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                toggleSidebar();
+            }
+        });
+
+        // Formatear todos los precios en formato chileno
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.promo-precio').forEach(function(el) {
+                var precio = el.textContent.replace(/[^\d]/g, '');
+                if (precio) {
+                    precio = parseInt(precio);
+                    el.textContent = '$' + precio.toLocaleString('es-CL');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

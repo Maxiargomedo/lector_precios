@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Producto No Encontrado - El Faro</title>
+    <style>
+        body { 
+            font-family: 'Arial', sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #f5f5f5; 
+            line-height: 1.6;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            overflow: hidden; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15); 
+        }
+        .header { 
+            background: linear-gradient(135deg, #d32f2f 0%, #f44336 100%); 
+            color: white; 
+            padding: 30px; 
+            text-align: center; 
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 28px; 
+            font-weight: bold; 
+        }
+        .header p { 
+            margin: 10px 0 0 0; 
+            font-size: 16px; 
+            opacity: 0.9; 
+        }
+        .content { 
+            padding: 40px; 
+        }
+        .codigo-box { 
+            background: #f9f9f9; 
+            border-left: 6px solid #d32f2f; 
+            padding: 20px; 
+            margin: 25px 0; 
+            font-family: 'Courier New', monospace; 
+            font-size: 20px; 
+            font-weight: bold; 
+            border-radius: 0 8px 8px 0;
+        }
+        
+        /* NUEVO: Estilos para resultados de Google */
+        .google-results {
+            background: linear-gradient(135deg, #f0f8ff 0%, #e8f4fd 100%);
+            border: 2px solid #4285f4;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.1);
+        }
+        
+        .google-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #4285f4;
+        }
+        
+        .google-logo {
+            font-size: 28px;
+            margin-right: 12px;
+        }
+        
+        .search-result {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 18px;
+            margin: 15px 0;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .search-result:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .result-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a0dab;
+            margin-bottom: 8px;
+            text-decoration: none;
+            display: block;
+        }
+        
+        .result-title:hover {
+            text-decoration: underline;
+        }
+        
+        .result-url {
+            color: #006621;
+            font-size: 14px;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+        
+        .result-snippet {
+            color: #545454;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        
+        .result-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .result-source {
+            background: #e8f0fe;
+            color: #1967d2;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .no-google-results {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 30px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .google-actions {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .google-btn {
+            display: inline-block;
+            background: #4285f4;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 0 8px;
+            transition: background 0.3s ease;
+        }
+        
+        .google-btn:hover {
+            background: #3367d6;
+        }
+        
+        .google-btn.secondary {
+            background: #34a853;
+        }
+        
+        .google-btn.secondary:hover {
+            background: #2d8f47;
+        }
+        
+        .stats-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+        
+        .stat-item {
+            flex: 1;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4285f4;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        
+        /* Estilos existentes */
+        .sugerencia { 
+            background: linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%); 
+            border-left: 6px solid #43a047; 
+            padding: 25px; 
+            margin: 25px 0; 
+            border-radius: 0 12px 12px 0; 
+        }
+        .no-sugerencia { 
+            background: linear-gradient(135deg, #fff3e0 0%, #fef7e0 100%); 
+            border-left: 6px solid #ff9800; 
+            padding: 25px; 
+            margin: 25px 0; 
+            border-radius: 0 12px 12px 0; 
+        }
+        .detalle { 
+            margin: 15px 0; 
+            display: flex; 
+            align-items: flex-start; 
+        }
+        .detalle strong { 
+            color: #333; 
+            min-width: 140px; 
+            margin-right: 10px; 
+        }
+        .footer { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            text-align: center; 
+            font-size: 13px; 
+            color: #666; 
+            border-top: 1px solid #eee; 
+        }
+        .imagen-producto { 
+            max-width: 200px; 
+            height: auto; 
+            border-radius: 8px; 
+            margin: 15px 0; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        }
+        .acciones-box {
+            background: #e3f2fd;
+            border-left: 6px solid #2196f3;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .acciones-box ul {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+        }
+        .acciones-box li {
+            margin: 8px 0;
+        }
+        .emoji { font-size: 18px; margin-right: 8px; }
+        .link-producto {
+            color: #1976d2;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .link-producto:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚫 Producto No Encontrado</h1>
+            <p>Sistema de Lector de Precios - El Faro Algarrobo</p>
+        </div>
+        
+        <div class="content">
+            <p>Se ha intentado buscar un producto que <strong>no existe</strong> en la base de datos del sistema:</p>
+            
+            <div class="codigo-box">
+                <span class="emoji">📊</span>Código de barras: {{ codigo_barras }}
+            </div>
+            
+            <!-- NUEVA SECCIÓN: Estadísticas de búsqueda -->
+            <div class="stats-box">
+                <div class="stat-item">
+                    <span class="stat-number">{{ resultados_google|length|default:0 }}</span>
+                    <span class="stat-label">Resultados Google</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">{% if encontrado_en_internet %}1{% else %}0{% endif %}</span>
+                    <span class="stat-label">APIs Consultadas</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">{{ tiempo_busqueda|default:"N/A" }}</span>
+                    <span class="stat-label">Tiempo (seg)</span>
+                </div>
+            </div>
+            
+            <div class="detalle">
+                <strong><span class="emoji">🕐</span>Fecha y hora:</strong> 
+                <span>{{ fecha_hora }}</span>
+            </div>
+            <div class="detalle">
+                <strong><span class="emoji">🌐</span>IP del cliente:</strong> 
+                <span>{{ ip_cliente }}</span>
+            </div>
+            
+            <!-- NUEVA SECCIÓN: Resultados de Google -->
+            <div class="google-results">
+                <div class="google-header">
+                    <span class="google-logo">🔍</span>
+                    Resultados de Google ({{ resultados_google|length|default:0 }} encontrados)
+                </div>
+                
+                {% if resultados_google %}
+                    {% for resultado in resultados_google %}
+                    <div class="search-result">
+                        <a href="{{ resultado.link }}" class="result-title" target="_blank">
+                            {{ resultado.title }}
+                        </a>
+                        <div class="result-url">{{ resultado.display_link }}</div>
+                        
+                        <!-- NUEVO: Mostrar imagen del producto si está disponible -->
+                        {% if resultado.imagen_url %}
+                        <div style="margin: 12px 0;">
+                            <img src="{{ resultado.imagen_url }}" 
+                                alt="Imagen del producto" 
+                                style="max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid #ddd;"
+                                onerror="this.style.display='none'">
+                        </div>
+                        {% endif %}
+                        
+                        <div class="result-snippet">{{ resultado.snippet }}</div>
+                        <div class="result-meta">
+                            <span class="result-source">
+                                {% if resultado.es_tienda %}🛒 TIENDA{% else %}🌐 WEB{% endif %} - {{ resultado.query_used|default:"Google" }}
+                            </span>
+                            <span>
+                                Resultado {{ forloop.counter }}
+                                {% if resultado.imagen_url %}🖼️{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="google-actions">
+                        <a href="https://www.google.cl/search?q={{ codigo_barras }}" 
+                        class="google-btn" target="_blank">
+                        🔍 Ver más en Google
+                        </a>
+                        <a href="https://www.jumbo.cl/buscar?q={{ codigo_barras }}" 
+                        class="google-btn secondary" target="_blank">
+                        🛒 Buscar en Jumbo
+                        </a>
+                        <a href="https://www.lider.cl/supermercado/search?q={{ codigo_barras }}" 
+                        class="google-btn secondary" target="_blank">
+                        🛒 Buscar en Líder
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="no-google-results">
+                        <p><strong>❌ No se encontraron resultados específicos en Google</strong></p>
+                        <p>Es posible que este código de barras sea:</p>
+                        <ul style="text-align: left; display: inline-block;">
+                            <li>Un producto muy nuevo</li>
+                            <li>Un código interno del proveedor</li>
+                            <li>Un producto local sin presencia online</li>
+                            <li>Un código con errores en el escaneo</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="google-actions">
+                        <a href="https://www.google.cl/search?q={{ codigo_barras }}" 
+                        class="google-btn" target="_blank">
+                        🔍 Buscar manualmente en Google
+                        </a>
+                        <a href="https://www.jumbo.cl/buscar?q={{ codigo_barras }}" 
+                        class="google-btn secondary" target="_blank">
+                        🛒 Buscar en Jumbo
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Sección de APIs existente -->
+            {% if encontrado_en_internet %}
+                <div class="sugerencia">
+                    <h3 style="margin-top: 0; color: #2e7d32;">
+                        <span class="emoji">✅</span>Sugerencia encontrada en internet:
+                    </h3>
+                    
+                    {% if producto_sugerido.nombre %}
+                        <div class="detalle">
+                            <strong><span class="emoji">📦</span>Nombre:</strong>
+                            <span>{{ producto_sugerido.nombre }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if producto_sugerido.marca %}
+                        <div class="detalle">
+                            <strong><span class="emoji">🏷️</span>Marca:</strong>
+                            <span>{{ producto_sugerido.marca }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if producto_sugerido.descripcion %}
+                        <div class="detalle">
+                            <strong><span class="emoji">📝</span>Descripción:</strong>
+                            <span>{{ producto_sugerido.descripcion }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if producto_sugerido.categoria %}
+                        <div class="detalle">
+                            <strong><span class="emoji">🗂️</span>Categoría:</strong>
+                            <span>{{ producto_sugerido.categoria }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if producto_sugerido.precio_referencia %}
+                        <div class="detalle">
+                            <strong><span class="emoji">💰</span>Precio referencia:</strong>
+                            <span>{{ producto_sugerido.precio_referencia }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if producto_sugerido.imagen_url %}
+                        <div class="detalle">
+                            <strong><span class="emoji">🖼️</span>Imagen:</strong><br>
+                            <img src="{{ producto_sugerido.imagen_url }}" alt="Imagen del producto" class="imagen-producto">
+                        </div>
+                    {% endif %}
+                    
+                    {% if producto_sugerido.link_producto %}
+                        <div class="detalle">
+                            <strong><span class="emoji">🌐</span>Link del producto:</strong>
+                            <span><a href="{{ producto_sugerido.link_producto }}" target="_blank" class="link-producto">Ver producto online</a></span>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="detalle">
+                        <strong><span class="emoji">🔗</span>Fuente:</strong>
+                        <span>{{ producto_sugerido.fuente }}</span>
+                    </div>
+                </div>
+            {% else %}
+                <div class="no-sugerencia">
+                    <h3 style="margin-top: 0; color: #ef6c00;">
+                        <span class="emoji">⚠️</span>No se encontró información en APIs
+                    </h3>
+                    <p>El sistema buscó automáticamente en múltiples fuentes de datos pero no pudo encontrar información sobre este código de barras.</p>
+                </div>
+            {% endif %}
+            
+            <div class="acciones-box">
+                <h3 style="margin-top: 0; color: #1976d2;">
+                    <span class="emoji">💡</span>Acciones recomendadas:
+                </h3>
+                <ul>
+                    <li><strong>Verificar</strong> si el código de barras fue escaneado correctamente</li>
+                    <li><strong>Revisar</strong> si es un producto que debe agregarse a la base de datos</li>
+                    {% if resultados_google %}
+                        <li><strong>Revisar los {{ resultados_google|length }} resultados de Google</strong> para obtener información del producto</li>
+                        <li><strong>Usar la información encontrada</strong> para crear el registro en la base de datos</li>
+                    {% endif %}
+                    <li><strong>Consultar</strong> con el proveedor sobre el producto</li>
+                    <li><strong>Agregar manualmente</strong> el producto si corresponde</li>
+                    {% if encontrado_en_internet %}
+                        <li><strong>Usar la información sugerida</strong> para crear el registro del producto</li>
+                        {% if producto_sugerido.link_producto %}
+                            <li><strong>Visitar el link proporcionado</strong> para ver más detalles del producto</li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>📧 Correo generado automáticamente</strong></p>
+            <p>Sistema de Lector de Precios - El Faro Algarrobo</p>
+            <p>Fecha de envío: {{ fecha_hora }}</p>
+            {% if resultados_google %}
+                <p style="margin-top: 15px; font-size: 11px; color: #4285f4;">
+                    ✨ Este correo incluye {{ resultados_google|length }} resultados de Google para ayudar en la identificación del producto.
+                </p>
+            {% endif %}
+            <p style="margin-top: 15px; font-size: 11px; color: #999;">
+                Este correo se envía automáticamente cuando un cliente intenta buscar un producto inexistente.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

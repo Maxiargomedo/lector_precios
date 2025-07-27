@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de productos</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:700,900&display=swap">
+    <style>
+        /* --- Sidebar styles --- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100%;
+            background: #222d32;
+            color: #fff;
+            padding-top: 60px;
+            transform: translateX(-220px);
+            transition: transform 0.3s;
+            z-index: 2001;
+            box-shadow: 2px 0 8px rgba(44,62,80,0.08);
+        }
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        .sidebar .sidebar-link {
+            display: block;
+            padding: 16px 32px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.08rem;
+            border-left: 4px solid transparent;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .sidebar .sidebar-link:hover, .sidebar .sidebar-link.active {
+            background: #1a2226;
+            border-left: 4px solid #43a047;
+            color: #43a047;
+        }
+        .sidebar-toggle-btn {
+            background: #43a047;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            transition: background 0.2s;
+            margin-right: 1rem;
+        }
+        .sidebar-toggle-btn:hover {
+            background: #388e3c;
+        }
+        .contenido-principal {
+            transition: margin-left 0.3s;
+        }
+        .contenido-principal.shifted {
+            margin-left: 220px !important;
+        }
+        .navbar {
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            transition: margin-left 0.3s;
+            z-index: 2102;
+        }
+        .navbar .navbar-brand {
+            display: flex;
+            align-items: center;
+        }
+        @media (max-width: 600px) {
+            .sidebar {
+                width: 170px;
+                padding-top: 50px;
+                transform: translateX(-170px);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-toggle-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1.2rem;
+                margin-right: 0.5rem;
+            }
+            .contenido-principal.shifted {
+                margin-left: 170px !important;
+            }
+        }
+        /* --- Fin sidebar --- */
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Montserrat', Arial, sans-serif;
+        }
+        .container {
+            max-width: 1100px;
+            margin-top: 40px;
+            background: #fff;
+            border-radius: 1.2rem;
+            box-shadow: 0 8px 32px rgba(44,62,80,0.12);
+            padding: 2.5rem 2rem 2rem 2rem;
+        }
+        .title {
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+        .actions { white-space: nowrap; }
+        .search-box { margin-bottom: 1.5rem; }
+        .table th, .table td { vertical-align: middle; }
+        .button.is-info {
+            background: linear-gradient(90deg, #43a047 0%, #388e3c 100%);
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .button.is-info:hover {
+            background: linear-gradient(90deg, #388e3c 0%, #43a047 100%);
+        }
+        .button.is-danger {
+            background: linear-gradient(90deg, #d32f2f 0%, #b71c1c 100%);
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .button.is-danger:hover {
+            background: linear-gradient(90deg, #b71c1c 0%, #d32f2f 100%);
+        }
+        .pagination {
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        .rows-per-page {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        @media (max-width: 900px) {
+            .container { padding: 1.2rem 0.5rem 1.2rem 0.5rem; }
+            .table th, .table td { font-size: 0.95rem; }
+        }
+        @media (max-width: 600px) {
+            .container { padding: 0.5rem 0.2rem 0.5rem 0.2rem; }
+            .table th, .table td { font-size: 0.85rem; }
+            .rows-per-page { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <a href="{% url 'lector_precios' %}" class="sidebar-link{% if request.resolver_match.url_name == 'lector_precios' %} active{% endif %}">Lector de Barras</a>
+        <a href="{% url 'agregar_producto' %}" class="sidebar-link active">Agregar Producto</a>
+        <a href="{% url 'mantenedor_promociones' %}" class="sidebar-link{% if request.resolver_match.url_name == 'mantenedor_promociones' %} active{% endif %}">Mantenedor de Imágenes de Promociones</a>
+    </nav>
+    <div class="contenido-principal" id="contenidoPrincipal">
+        <!-- Barra de navegación -->
+        <nav class="navbar is-light" role="navigation" aria-label="main navigation" id="mainNavbar">
+            <div class="navbar-brand">
+                <!-- Botón para mostrar/ocultar sidebar dentro de la navbar -->
+                <button class="sidebar-toggle-btn" id="sidebarToggle" title="Menú" type="button">
+                    <span id="sidebarIcon">&#9776;</span>
+                </button>
+            </div>
+            <div class="navbar-menu is-active" style="width:100%;">
+                <div class="navbar-start">
+                    <a class="navbar-item" href="{% url 'agregar_producto' %}">Agregar Producto</a>
+                    <a class="navbar-item" href="{% url 'lista_productos' %}">Lista de productos</a>
+                </div>
+            </div>
+        </nav>
+        <div class="container">
+            <h1 class="title has-text-centered has-text-danger">Lista de productos</h1>
+            <div class="rows-per-page">
+                <label for="rowsPerPage"><strong>Filas por página:</strong></label>
+                <div class="select">
+                    <select id="rowsPerPage">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="40">40</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field search-box">
+                <div class="control has-icons-left">
+                    <input id="buscador" class="input" type="text" placeholder="Buscar producto por nombre, SKU o código de barras...">
+                    <span class="icon is-left"><i class="fas fa-search"></i></span>
+                </div>
+            </div>
+            <table class="table is-striped is-fullwidth" id="tablaProductos">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>SKU</th>
+                        <th>Código de Barras</th>
+                        <th>Precio</th>
+                        <th>Precio Vecino</th>
+                        <th class="actions">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr>
+                        <td>{{ producto.nombre }}</td>
+                        <td>{{ producto.sku }}</td>
+                        <td>{{ producto.codigo_barras }}</td>
+                        <td>${{ producto.precio }}</td>
+                        <td>{% if producto.precio_vecino %}${{ producto.precio_vecino }}{% else %}-{% endif %}</td>
+                        <td class="actions">
+                            <a href="{% url 'editar_producto' producto.id %}" class="button is-small is-info">Editar</a>
+                            <form method="post" action="{% url 'eliminar_producto' producto.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="button is-small is-danger" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="has-text-centered">No hay productos registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <nav class="pagination" role="navigation" aria-label="pagination" id="paginacion"></nav>
+        </div>
+    </div>
+    <script src="https://kit.fontawesome.com/2c36e9b7b1.js" crossorigin="anonymous"></script>
+    <script>
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarIcon = document.getElementById('sidebarIcon');
+        const contenidoPrincipal = document.getElementById('contenidoPrincipal');
+        let sidebarOpen = false;
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            sidebar.classList.toggle('open', sidebarOpen);
+            contenidoPrincipal.classList.toggle('shifted', sidebarOpen);
+            sidebarIcon.innerHTML = sidebarOpen ? '&times;' : '&#9776;';
+        }
+
+        sidebarToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleSidebar();
+        });
+
+        // Cerrar sidebar al hacer click fuera en móviles
+        document.addEventListener('click', function(e) {
+            if (sidebarOpen && !sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                toggleSidebar();
+            }
+        });
+
+        // --- Paginación y filtrado en el frontend ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const buscador = document.getElementById('buscador');
+            const tabla = document.getElementById('tablaProductos').getElementsByTagName('tbody')[0];
+            const rowsPerPageSelect = document.getElementById('rowsPerPage');
+            const paginacion = document.getElementById('paginacion');
+            let rowsPerPage = parseInt(rowsPerPageSelect.value);
+            let currentPage = 1;
+
+            function getFilteredRows() {
+                const filtro = buscador.value.toLowerCase();
+                // SIEMPRE considerar todas las filas, no solo las visibles
+                return Array.from(tabla.rows).filter(row => {
+                    const texto = Array.from(row.cells).slice(0, 3).map(td => td.textContent.toLowerCase()).join(' ');
+                    return texto.includes(filtro);
+                });
+            }
+
+            function updateTable() {
+                paginate();
+            }
+
+            function paginate() {
+                const filteredRows = getFilteredRows();
+                const totalRows = filteredRows.length;
+                const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
+                if (currentPage > totalPages) currentPage = totalPages;
+
+                // Oculta todas las filas primero
+                Array.from(tabla.rows).forEach(row => row.style.display = 'none');
+                // Muestra solo las filas de la página actual
+                filteredRows.forEach((row, idx) => {
+                    if (idx >= (currentPage - 1) * rowsPerPage && idx < currentPage * rowsPerPage) {
+                        row.style.display = '';
+                    }
+                });
+
+                renderPagination(totalPages);
+            }
+
+            function renderPagination(totalPages) {
+                paginacion.innerHTML = '';
+                if (totalPages <= 1) return;
+
+                const ul = document.createElement('ul');
+                ul.className = 'pagination-list';
+
+                // Prev button
+                const prev = document.createElement('a');
+                prev.className = 'pagination-previous';
+                prev.textContent = 'Anterior';
+                prev.disabled = currentPage === 1;
+                prev.onclick = function() {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        paginate();
+                    }
+                };
+                paginacion.appendChild(prev);
+
+                // Next button
+                const next = document.createElement('a');
+                next.className = 'pagination-next';
+                next.textContent = 'Siguiente';
+                next.disabled = currentPage === totalPages;
+                next.onclick = function() {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        paginate();
+                    }
+                };
+                paginacion.appendChild(next);
+
+                // Page numbers
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 2) {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.className = 'pagination-link' + (i === currentPage ? ' is-current' : '');
+                        a.textContent = i;
+                        a.onclick = function() {
+                            currentPage = i;
+                            paginate();
+                        };
+                        li.appendChild(a);
+                        ul.appendChild(li);
+                    } else if (
+                        (i === currentPage - 3 && i > 1) ||
+                        (i === currentPage + 3 && i < totalPages)
+                    ) {
+                        const li = document.createElement('li');
+                        li.innerHTML = '<span class="pagination-ellipsis">&hellip;</span>';
+                        ul.appendChild(li);
+                    }
+                }
+                paginacion.appendChild(ul);
+            }
+
+            buscador.addEventListener('input', function() {
+                currentPage = 1;
+                updateTable();
+            });
+
+            rowsPerPageSelect.addEventListener('change', function() {
+                rowsPerPage = parseInt(this.value);
+                currentPage = 1;
+                paginate();
+            });
+
+            // Inicializar
+            updateTable();
+        });
+    </script>
+</body>
+</html>

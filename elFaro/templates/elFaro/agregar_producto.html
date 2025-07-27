@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Agregar Producto</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:700,900&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* --- Sidebar styles --- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100%;
+            background: #222d32;
+            color: #fff;
+            padding-top: 60px;
+            transform: translateX(-220px);
+            transition: transform 0.3s;
+            z-index: 2001;
+            box-shadow: 2px 0 8px rgba(44,62,80,0.08);
+        }
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        .sidebar .sidebar-link {
+            display: block;
+            padding: 16px 32px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.08rem;
+            border-left: 4px solid transparent;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .sidebar .sidebar-link:hover, .sidebar .sidebar-link.active {
+            background: #1a2226;
+            border-left: 4px solid #43a047;
+            color: #43a047;
+        }
+        .sidebar-toggle-btn {
+            background: #43a047;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            transition: background 0.2s;
+            margin-right: 1rem;
+        }
+        .sidebar-toggle-btn:hover {
+            background: #388e3c;
+        }
+        .contenido-principal {
+            transition: margin-left 0.3s;
+        }
+        .contenido-principal.shifted {
+            margin-left: 220px !important;
+        }
+        .navbar {
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            transition: margin-left 0.3s;
+            z-index: 2102;
+        }
+        .navbar .navbar-brand {
+            display: flex;
+            align-items: center;
+        }
+        @media (max-width: 600px) {
+            .sidebar {
+                width: 170px;
+                padding-top: 50px;
+                transform: translateX(-170px);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-toggle-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1.2rem;
+                margin-right: 0.5rem;
+            }
+            .contenido-principal.shifted {
+                margin-left: 170px !important;
+            }
+        }
+        /* --- Fin sidebar --- */
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Montserrat', Arial, sans-serif;
+        }
+        .container {
+            max-width: 500px;
+            margin-top: 40px;
+            background: #fff;
+            border-radius: 1.2rem;
+            box-shadow: 0 8px 32px rgba(44,62,80,0.12);
+            padding: 2.5rem 2rem 2rem 2rem;
+            transition: margin-left 0.3s;
+        }
+        .title {
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+        .success-msg {
+            color: #43a047;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .field:not(:last-child) {
+            margin-bottom: 1.2rem;
+        }
+        .button.is-success {
+            background: linear-gradient(90deg, #43a047 0%, #388e3c 100%);
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .button.is-success:hover {
+            background: linear-gradient(90deg, #388e3c 0%, #43a047 100%);
+        }
+        .button.is-light {
+            border: 1px solid #bbb;
+        }
+        label.label {
+            font-weight: 700;
+            color: #d32f2f;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Estilos mejorados para inputs */
+        .control {
+            position: relative;
+        }
+        
+        .input, .input:focus {
+            border-radius: 0.7rem;
+            border: 2px solid #bdbdbd;
+            box-shadow: none;
+            font-size: 1.1rem;
+            padding-left: 2.8rem;
+            height: 3rem;
+            transition: all 0.3s;
+            background-color: #f9f9f9;
+        }
+        
+        .input:hover {
+            border-color: #888;
+        }
+        
+        .input:focus {
+            border-color: #43a047;
+            background-color: #fff;
+            box-shadow: 0 0 0 2px rgba(67, 160, 71, 0.1);
+        }
+        
+        /* Iconos para los inputs */
+        .control::before {
+            font-family: 'Font Awesome 5 Free';
+            position: absolute;
+            left: 1rem;
+            top: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #888;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .control-nombre::before {
+            content: "\f044"; /* Icono de nombre (lápiz) */
+        }
+        
+        .control-sku::before {
+            content: "\f02b"; /* Icono de SKU (etiqueta) */
+        }
+        
+        .control-barcode::before {
+            content: "\f02a"; /* Icono de código de barras */
+        }
+        
+        .control-precio::before {
+            content: "\f155"; /* Icono de precio (dólar) */
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <a href="{% url 'lector_precios' %}" class="sidebar-link{% if request.resolver_match.url_name == 'lector_precios' %} active{% endif %}">Lector de Barras</a>
+        <a href="{% url 'agregar_producto' %}" class="sidebar-link{% if request.resolver_match.url_name == 'agregar_producto' %} active{% endif %}">Agregar Producto</a>
+        <a href="{% url 'mantenedor_promociones' %}" class="sidebar-link{% if request.resolver_match.url_name == 'mantenedor_promociones' %} active{% endif %}">Mantenedor de Imágenes de Promociones</a>
+    </nav>
+    <div class="contenido-principal" id="contenidoPrincipal">
+        <!-- Barra de navegación -->
+        <nav class="navbar is-light" role="navigation" aria-label="main navigation" id="mainNavbar">
+            <div class="navbar-brand">
+                <!-- Botón para mostrar/ocultar sidebar dentro de la navbar -->
+                <button class="sidebar-toggle-btn" id="sidebarToggle" title="Menú" type="button">
+                    <span id="sidebarIcon">&#9776;</span>
+                </button>
+            </div>
+            <div class="navbar-menu is-active" style="width:100%;">
+                <div class="navbar-start">
+                    <a class="navbar-item" href="{% url 'agregar_producto' %}">Agregar Producto</a>
+                    <a class="navbar-item" href="{% url 'lista_productos' %}">Lista de productos</a>
+                </div>
+            </div>
+        </nav>
+        <div class="container" id="mainContainer">
+            <h1 class="title has-text-centered has-text-danger">Agregar Producto</h1>
+            {% if messages %}
+                {% for message in messages %}
+                    <div id="successMsg" class="notification is-success success-msg">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            <form method="post" autocomplete="off">
+                {% csrf_token %}
+                <div class="field">
+                    <label class="label">Nombre</label>
+                    <div class="control control-nombre">{{ form.nombre }}</div>
+                </div>
+                <div class="field">
+                    <label class="label">SKU</label>
+                    <div class="control control-sku">{{ form.sku }}</div>
+                </div>
+                <div class="field">
+                    <label class="label">Código de Barras</label>
+                    <div class="control control-barcode">{{ form.codigo_barras }}</div>
+                </div>
+                <div class="field">
+                    <label class="label">Precio</label>
+                    <div class="control control-precio">{{ form.precio }}</div>
+                </div>
+                <div class="field">
+                    <label class="label">Precio Vecino</label>
+                    <div class="control control-precio-vecino">{{ form.precio_vecino }}</div>
+                </div>
+                <div class="field is-grouped is-grouped-centered" style="margin-top:1.5rem;">
+                    <div class="control">
+                        <button type="submit" class="button is-success">Agregar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarIcon = document.getElementById('sidebarIcon');
+        const contenidoPrincipal = document.getElementById('contenidoPrincipal');
+        let sidebarOpen = false;
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            sidebar.classList.toggle('open', sidebarOpen);
+            contenidoPrincipal.classList.toggle('shifted', sidebarOpen);
+            sidebarIcon.innerHTML = sidebarOpen ? '&times;' : '&#9776;';
+        }
+
+        sidebarToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleSidebar();
+        });
+
+        // Cerrar sidebar al hacer click fuera en móviles
+        document.addEventListener('click', function(e) {
+            if (sidebarOpen && !sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                toggleSidebar();
+            }
+        });
+
+        // Oculta el mensaje de éxito después de 3 segundos
+        window.addEventListener('DOMContentLoaded', function() {
+            var msg = document.getElementById('successMsg');
+            if (msg) {
+                setTimeout(function() {
+                    msg.style.display = 'none';
+                }, 3000);
+            }
+            
+            // Añadir clases a inputs generados por Django
+            document.querySelectorAll('input').forEach(function(input) {
+                if (!input.classList.contains('button')) {
+                    input.classList.add('input');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

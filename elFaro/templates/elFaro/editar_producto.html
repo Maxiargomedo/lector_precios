@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Producto</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:700,900&display=swap">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Montserrat', Arial, sans-serif;
+        }
+        .navbar {
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+        }
+        .container {
+            max-width: 500px;
+            margin-top: 40px;
+            background: #fff;
+            border-radius: 1.2rem;
+            box-shadow: 0 8px 32px rgba(44,62,80,0.12);
+            padding: 2.5rem 2rem 2rem 2rem;
+        }
+        .title {
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+        .field:not(:last-child) {
+            margin-bottom: 1.2rem;
+        }
+        .button.is-info {
+            background: linear-gradient(90deg, #43a047 0%, #388e3c 100%);
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .button.is-info:hover {
+            background: linear-gradient(90deg, #388e3c 0%, #43a047 100%);
+        }
+        .button.is-light {
+            border: 1px solid #bbb;
+        }
+        label.label {
+            font-weight: 700;
+            color: #d32f2f;
+            letter-spacing: 0.5px;
+        }
+        .input, .input:focus {
+            border-radius: 0.7rem;
+            border: 1px solid #bdbdbd;
+            box-shadow: none;
+            font-size: 1.1rem;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Barra de navegación -->
+    <nav class="navbar is-light" role="navigation" aria-label="main navigation">
+      <div class="navbar-menu is-active" style="width:100%;">
+        <div class="navbar-start">
+          <a class="navbar-item" href="{% url 'agregar_producto' %}">Agregar Producto</a>
+          <a class="navbar-item" href="{% url 'lista_productos' %}">Lista de productos</a>
+        </div>
+      </div>
+    </nav>
+    <div class="container">
+        <h1 class="title has-text-centered has-text-info">Editar Producto</h1>
+        <form method="post">
+            {% csrf_token %}
+            <div class="field">
+                <label class="label">Nombre</label>
+                <div class="control">
+                    {{ form.nombre }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">SKU</label>
+                <div class="control">
+                    {{ form.sku }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">Código de Barras</label>
+                <div class="control">
+                    {{ form.codigo_barras }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">Precio</label>
+                <div class="control">
+                    {{ form.precio }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">Precio Vecino</label>
+                <div class="control">
+                    {{ form.precio_vecino }}
+                </div>
+            </div>
+            <div class="field is-grouped is-grouped-centered" style="margin-top:1.5rem;">
+                <div class="control">
+                    <button type="submit" class="button is-info">Guardar Cambios</button>
+                </div>
+                <div class="control">
+                    <a href="{% url 'lista_productos' %}" class="button is-light">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
