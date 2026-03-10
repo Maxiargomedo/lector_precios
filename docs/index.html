@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>El Faro – Consultor de Precios</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:700,900&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* =====================================================================
+           VARIABLES & RESET
+        ===================================================================== */
+        :root {
+            --green: #43a047;
+            --green-dark: #388e3c;
+            --red: #d32f2f;
+            --red-dark: #b71c1c;
+            --dark-nav: #222d32;
+            --sidebar-w: 220px;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            margin: 0; padding: 0;
+            font-family: 'Montserrat', Arial, sans-serif;
+            background: #fff;
+        }
+
+        /* =====================================================================
+           SIDEBAR
+        ===================================================================== */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: var(--sidebar-w);
+            height: 100%;
+            background: var(--dark-nav);
+            color: #fff;
+            padding-top: 60px;
+            transform: translateX(calc(-1 * var(--sidebar-w)));
+            transition: transform 0.3s;
+            z-index: 2001;
+            box-shadow: 2px 0 8px rgba(44,62,80,.08);
+        }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar-link {
+            display: block;
+            padding: 16px 32px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.08rem;
+            border-left: 4px solid transparent;
+            transition: background .2s, border-color .2s;
+            cursor: pointer;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: #1a2226;
+            border-left: 4px solid var(--green);
+            color: var(--green);
+        }
+        .sidebar-toggle-btn {
+            background: var(--green);
+            color: #fff; border: none;
+            border-radius: 50%;
+            width: 42px; height: 42px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(44,62,80,.08);
+            transition: background .2s;
+            flex-shrink: 0;
+        }
+        .sidebar-toggle-btn:hover { background: var(--green-dark); }
+        @media (max-width: 600px) {
+            :root { --sidebar-w: 200px; }
+            .sidebar-toggle-btn { width: 36px; height: 36px; font-size: 1.2rem; }
+        }
+
+        /* =====================================================================
+           SHARED NAVBAR (lista / agregar / promociones)
+        ===================================================================== */
+        .shared-navbar {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(44,62,80,.08);
+            display: flex; align-items: center;
+            padding: 0.75rem 1rem;
+            position: sticky; top: 0; z-index: 1100;
+        }
+        .shared-navbar .nav-links { display: flex; align-items: center; gap: 1.5rem; margin-left: 1rem; }
+        .shared-navbar .nav-links a {
+            font-weight: 600; color: #333; text-decoration: none;
+            font-size: .97rem; cursor: pointer;
+        }
+        .shared-navbar .nav-links a:hover { color: var(--green); }
+
+        /* =====================================================================
+           PAGES container
+        ===================================================================== */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* =====================================================================
+           PAGE: LECTOR
+        ===================================================================== */
+        #page-lector {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            position: fixed;
+            top: 0; left: 0;
+            background: #fff;
+            transition: opacity .3s;
+        }
+        #page-lector.active { display: flex; }
+        #page-lector.hidden { opacity: 0; pointer-events: none; }
+
+        .consultor-title {
+            color: #000;
+            font-size: 2rem; font-weight: 900;
+            text-align: center;
+            margin-top: 1.5rem; margin-bottom: 1rem;
+            letter-spacing: 1px; flex: none;
+        }
+        .main-container {
+            flex: 1; width: 100vw;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: space-between;
+            padding-bottom: 20px;
+        }
+        .logo-section {
+            width: 100vw; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            flex: 1; margin-bottom: 30px;
+        }
+        /* Carousel */
+        .carrusel-container {
+            width: 100vw; height: 60vh; max-height: 68vh; min-height: 200px;
+            margin: 0 auto; position: relative; overflow: hidden;
+            border-radius: 0; background: #f5f5f5;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .carrusel-img { width:100%; height:100%; object-fit:cover; display:none; }
+        .carrusel-img.active { display: block; }
+        .carrusel-controles {
+            position: absolute; width:100%; top:50%; left:0;
+            display: flex; justify-content: space-between;
+            transform: translateY(-50%); pointer-events: none;
+            padding: 0 15px; z-index: 10;
+        }
+        .carrusel-btn {
+            background: rgba(0,0,0,.5); color:#fff; border:none;
+            border-radius: 50%; width:36px; height:36px;
+            font-size:1.2rem; cursor:pointer; pointer-events:all;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .carrusel-btn:hover { background: rgba(0,0,0,.7); }
+        .carrusel-indicadores {
+            position: absolute; bottom:2vh; left:50%;
+            transform: translateX(-50%);
+            display: flex; gap: 8px; z-index: 10;
+        }
+        .carrusel-indicador {
+            width: 12px; height: 12px; border-radius:50%;
+            background: rgba(255,255,255,.5); cursor: pointer;
+        }
+        .carrusel-indicador.active { background: var(--green); }
+        .no-promos-placeholder {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; height: 100%;
+            flex-direction: column; gap: 1rem; color: #888;
+        }
+        .no-promos-placeholder .icon-promo { font-size: 4rem; }
+        /* Marquee */
+        .texto-marquee-container {
+            width: 100%; background: var(--green); overflow: hidden;
+            margin-bottom: 15px; padding: 10px 0;
+            border-top: 2px solid var(--green-dark); border-bottom: 2px solid var(--green-dark);
+        }
+        .texto-marquee {
+            white-space: nowrap; display: inline-block;
+            animation: marquee 60s linear infinite;
+            color: white; font-size: 1.2rem; font-weight: 600;
+        }
+        .texto-marquee span { margin-right: 50px; }
+        @keyframes marquee { 0%{transform:translateX(100%)} 100%{transform:translateX(-100%)} }
+        /* Bottom bar */
+        .barra-roja {
+            width: 100vw; background: #000; color:#fff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 1.5vh 0; min-height: 110px; margin-top: 15px; flex: 0 0 auto;
+        }
+        .scan-here {
+            font-size: 2.2vw; font-weight:900; letter-spacing:2px;
+            margin-bottom:.5vh; text-align:center;
+        }
+        .flechas {
+            font-size: 2vw; font-weight:bold;
+            margin-bottom:1vh; margin-top:.2vh;
+            text-align:center; animation: flotar 1.5s ease-in-out infinite;
+        }
+        @keyframes flotar { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+        .input-barcode {
+            max-width: 340px; margin:0 auto; font-size:1.3rem;
+            text-align:center; border-radius:.7rem; border:none;
+            box-shadow:0 2px 8px rgba(0,0,0,.07);
+            opacity:0; position:absolute; left:-9999px;
+        }
+        /* Product card overlay */
+        .producto-carta {
+            position:fixed; top:0;left:0;width:100vw;height:100vh;
+            background:rgba(0,0,0,.25); z-index:1000;
+            display:none; align-items:center; justify-content:center;
+            animation: fadeIn .3s;
+        }
+        .producto-carta-contenido {
+            background:#fff; border-radius:2rem;
+            box-shadow:0 12px 40px rgba(44,62,80,.35), 0 2px 8px rgba(44,62,80,.10);
+            width:90vw; height:90vh; max-width:900px; max-height:900px;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            padding:2.5rem 1.5rem 2rem; position:relative; animation:popUp .3s;
+        }
+        .codigo-barras {
+            position:absolute; top:1.2rem; left:2rem;
+            font-size:1.1rem; color:#222; font-weight:bold; letter-spacing:1px;
+        }
+        .sku { position:absolute; top:2.4rem; left:2rem; font-size:.9rem; color:#888; }
+        .error-msg { color:var(--red); font-size:2rem; font-weight:900; text-align:center; margin:auto; }
+        .producto-nombre { font-size:2.86rem; font-weight:900; color:#222; margin-bottom:1.2rem; text-align:center; word-break:break-word; }
+        .producto-precio { font-size:4.16rem; font-weight:900; color:var(--green); margin-bottom:.5rem; text-align:center; }
+        .precio-normal-container { display:flex; flex-direction:column; align-items:center; margin-bottom:.8rem; }
+        .precio-normal-label { font-size:1.5rem; font-weight:700; color:#666; margin-bottom:.3rem; }
+        .precio-vecino-container { display:flex; flex-direction:column; align-items:center; margin-top:-.5rem; margin-bottom:1rem; }
+        .precio-vecino-label { font-size:1.5rem; font-weight:700; color:#666; }
+        .precio-vecino-valor { font-size:2.5rem; font-weight:800; color:#2e7d32; }
+        .precio-vecino-nota { font-size:.75rem; font-weight:600; color:#555; text-align:center; max-width:90%; margin-top:.5rem; line-height:1.2; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        @keyframes popUp { 0%{transform:scale(.9);opacity:0} 100%{transform:scale(1);opacity:1} }
+        /* Camera btn */
+        .camera-btn {
+            position:fixed; top:20px; right:20px; z-index:3000;
+            background:var(--green); color:#fff; border:none;
+            border-radius:50%; width:60px; height:60px; font-size:1.5rem;
+            cursor:pointer; display:flex; align-items:center; justify-content:center;
+            box-shadow:0 4px 16px rgba(67,160,71,.3); transition:all .3s;
+        }
+        .camera-btn:hover { background:var(--green-dark); transform:scale(1.1); }
+        /* Scanner overlay */
+        .scanner-overlay {
+            position:fixed; top:0;left:0;width:100vw;height:100vh;
+            background:rgba(0,0,0,.9); z-index:4000;
+            display:none; flex-direction:column; align-items:center; justify-content:center;
+        }
+        .scanner-container {
+            width:90vw; max-width:400px; height:70vh; max-height:400px;
+            position:relative; border:3px solid var(--green);
+            border-radius:15px; overflow:hidden; background:#000;
+        }
+        .scanner-video { width:100%; height:100%; object-fit:cover; }
+        .scanner-overlay-box {
+            position:absolute; top:50%; left:50%;
+            transform:translate(-50%,-50%); width:80%; height:30%;
+            border:2px solid var(--green); border-radius:8px;
+            background:rgba(67,160,71,.1);
+            box-shadow:0 0 0 9999px rgba(0,0,0,.5),inset 0 0 0 2px var(--green);
+        }
+        .scanner-line {
+            position:absolute; top:0; left:0; width:100%; height:2px;
+            background:linear-gradient(90deg,transparent,var(--green),transparent);
+            animation:scanner-anim 2s linear infinite;
+        }
+        @keyframes scanner-anim { 0%{transform:translateY(0)} 100%{transform:translateY(calc(100% + 50px))} }
+        .scanner-instructions { color:#fff; text-align:center; margin-top:20px; font-size:1.1rem; font-weight:600; }
+        .scanner-status { color:var(--green); font-size:1.2rem; font-weight:700; margin-top:15px; text-align:center; }
+        .scanner-controls { margin-top:30px; display:flex; gap:15px; }
+        .scanner-btn {
+            background:var(--green); color:#fff; border:none;
+            border-radius:25px; padding:12px 24px; font-size:1rem;
+            font-weight:600; cursor:pointer; transition:all .3s;
+        }
+        .scanner-btn:hover { background:var(--green-dark); transform:translateY(-2px); }
+        .scanner-btn.secondary { background:#666; }
+        .scanner-btn.secondary:hover { background:#555; }
+
+        /* =====================================================================
+           PAGE: LISTA PRODUCTOS
+        ===================================================================== */
+        #page-lista { background: linear-gradient(135deg,#f5f7fa,#c3cfe2); min-height:100vh; }
+        .lista-container {
+            max-width:1100px; margin:40px auto;
+            background:#fff; border-radius:1.2rem;
+            box-shadow:0 8px 32px rgba(44,62,80,.12);
+            padding:2.5rem 2rem 2rem;
+        }
+        .search-box { margin-bottom:1.5rem; }
+        .rows-per-page { margin-bottom:1rem; display:flex; align-items:center; gap:.5rem; }
+        .button.is-info, .button.is-info:focus {
+            background:linear-gradient(90deg,var(--green),var(--green-dark));
+            border:none; color:#fff; font-weight:bold;
+        }
+        .button.is-info:hover { background:linear-gradient(90deg,var(--green-dark),var(--green)); }
+        .button.is-danger, .button.is-danger:focus {
+            background:linear-gradient(90deg,var(--red),var(--red-dark));
+            border:none; color:#fff; font-weight:bold;
+        }
+        .button.is-danger:hover { background:linear-gradient(90deg,var(--red-dark),var(--red)); }
+        .button.is-success, .button.is-success:focus {
+            background:linear-gradient(90deg,var(--green),var(--green-dark));
+            border:none; color:#fff; font-weight:bold;
+        }
+        .button.is-success:hover { background:linear-gradient(90deg,var(--green-dark),var(--green)); }
+
+        /* =====================================================================
+           PAGE: AGREGAR / EDITAR PRODUCTO
+        ===================================================================== */
+        #page-agregar, #page-editar { background: linear-gradient(135deg,#f5f7fa,#c3cfe2); min-height:100vh; }
+        .form-container {
+            max-width:500px; margin:40px auto;
+            background:#fff; border-radius:1.2rem;
+            box-shadow:0 8px 32px rgba(44,62,80,.12);
+            padding:2.5rem 2rem 2rem;
+        }
+        label.label { font-weight:700; color:var(--red); letter-spacing:.5px; }
+        .input, .input:focus {
+            border-radius:.7rem; border:2px solid #bdbdbd;
+            font-size:1.1rem; height:3rem; transition:all .3s; background:#f9f9f9;
+        }
+        .input:focus { border-color:var(--green); background:#fff; box-shadow:0 0 0 2px rgba(67,160,71,.1); }
+
+        /* =====================================================================
+           PAGE: PROMOCIONES
+        ===================================================================== */
+        #page-promos { background: linear-gradient(135deg,#f5f7fa,#c3cfe2); min-height:100vh; }
+        .promos-container {
+            max-width:900px; margin:40px auto;
+            background:#fff; border-radius:1.2rem;
+            box-shadow:0 8px 32px rgba(44,62,80,.12);
+            padding:2.5rem 2rem 2rem;
+        }
+        .promo-list { display:flex; flex-wrap:wrap; gap:32px; justify-content:center; }
+        .promo-item {
+            background:#fafbfc; border-radius:1rem;
+            box-shadow:0 2px 12px rgba(44,62,80,.08);
+            padding:1.2rem 1.2rem .8rem; display:flex;
+            flex-direction:column; align-items:center;
+            min-width:200px; max-width:220px; margin-bottom:1.5rem;
+            border:1px solid #e0e0e0; transition:box-shadow .2s,border .2s;
+        }
+        .promo-item:hover { box-shadow:0 6px 24px rgba(44,62,80,.18); border:1.5px solid var(--green); }
+        .promo-img {
+            max-width:180px; max-height:120px; margin:10px 0;
+            border-radius:8px; border:1.5px solid #bbb;
+            background:#f3f3f3; box-shadow:0 2px 8px rgba(44,62,80,.07); object-fit:cover;
+        }
+        .promo-nombre { font-size:1rem; color:#555; margin-top:.7rem; text-align:center; font-weight:600; word-break:break-word; }
+
+        /* =====================================================================
+           MODALS
+        ===================================================================== */
+        .modal-backdrop {
+            position:fixed; top:0;left:0;width:100vw;height:100vh;
+            background:rgba(0,0,0,.45); z-index:5000;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .modal-box {
+            background:#fff; border-radius:1.2rem;
+            padding:2rem 1.5rem; max-width:460px; width:92%;
+            box-shadow:0 12px 40px rgba(0,0,0,.3);
+            animation:popUp .25s;
+        }
+        .modal-box h3 { font-size:1.3rem; font-weight:900; color:var(--red); margin-bottom:1.2rem; }
+        .modal-actions { display:flex; justify-content:flex-end; gap:1rem; margin-top:1.5rem; }
+
+        /* =====================================================================
+           NOTIFICATION TOAST
+        ===================================================================== */
+        #toast {
+            position:fixed; bottom:2rem; left:50%;
+            transform:translateX(-50%) translateY(120%);
+            background:#222; color:#fff; padding:.8rem 2rem;
+            border-radius:2rem; font-weight:700; font-size:1rem;
+            z-index:9000; transition:transform .35s;
+            pointer-events:none; text-align:center; max-width:90vw;
+        }
+        #toast.show { transform:translateX(-50%) translateY(0); }
+        #toast.is-success { background:var(--green); }
+        #toast.is-danger { background:var(--red); }
+
+        /* =====================================================================
+           IMPORT CSV BUTTON
+        ===================================================================== */
+        .import-row { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; }
+
+        /* =====================================================================
+           RESPONSIVE
+        ===================================================================== */
+        @media(max-width:900px) {
+            .lista-container { padding:1.2rem .5rem; }
+        }
+        @media(max-width:768px) {
+            .consultor-title { font-size:1.5rem; margin-top:.8rem; margin-bottom:.8rem; }
+            .carrusel-container { height:28vh; min-height:120px; }
+            .scan-here { font-size:2rem; }
+            .flechas { font-size:1.5rem; }
+            .texto-marquee { font-size:1rem; animation-duration:20s; }
+            .barra-roja { min-height:100px; }
+            .producto-carta-contenido { width:95vw; height:88vh; padding:1rem .8rem; border-radius:1rem; }
+            .producto-nombre { font-size:1.8rem !important; }
+            .producto-precio { font-size:2.8rem !important; }
+            .precio-vecino-valor { font-size:1.8rem !important; }
+            .camera-btn { width:50px;height:50px;font-size:1.2rem;top:12px;right:12px; }
+            .scanner-container { width:95vw;height:55vh;max-height:320px; }
+            input,select,textarea { font-size:16px!important; }
+        }
+        @media(max-width:480px) {
+            .consultor-title { font-size:1.3rem; }
+            .carrusel-container { height:20vh; min-height:100px; }
+            .scan-here { font-size:1.5rem; }
+            .producto-nombre { font-size:1.5rem; }
+            .producto-precio { font-size:2.3rem; }
+        }
+
+        /* Demo badge */
+        .demo-badge {
+            position:fixed; bottom:1rem; right:1rem; z-index:8000;
+            background:rgba(0,0,0,.7); color:#fff;
+            font-size:.72rem; padding:.35rem .75rem;
+            border-radius:1rem; font-weight:600; opacity:.7;
+            pointer-events:none;
+        }
+    </style>
+</head>
+<body>
+
+<!-- =====================================================================
+     SIDEBAR (shared across all pages)
+===================================================================== -->
+<nav class="sidebar" id="sidebar">
+    <a class="sidebar-link" data-page="lector">🔍 Lector de Precios</a>
+    <a class="sidebar-link" data-page="agregar">➕ Agregar Producto</a>
+    <a class="sidebar-link" data-page="lista">📋 Lista de Productos</a>
+    <a class="sidebar-link" data-page="promos">🖼️ Imágenes de Promociones</a>
+</nav>
+
+<!-- =====================================================================
+     PAGE: LECTOR DE PRECIOS
+===================================================================== -->
+<div id="page-lector" class="active">
+
+    <!-- Camera button (mobile) -->
+    <button class="camera-btn" id="cameraBtn" title="Escanear con cámara" style="display:none">📷</button>
+
+    <!-- Scanner overlay -->
+    <div class="scanner-overlay" id="scannerOverlay">
+        <div class="scanner-container">
+            <video class="scanner-video" id="scannerVideo" autoplay muted playsinline></video>
+            <canvas id="scannerCanvas" style="display:none"></canvas>
+            <div class="scanner-overlay-box"><div class="scanner-line"></div></div>
+        </div>
+        <div class="scanner-instructions">Coloca el código de barras dentro del recuadro verde</div>
+        <div class="scanner-status" id="scannerStatus">Iniciando cámara...</div>
+        <div class="scanner-controls">
+            <button class="scanner-btn" id="closeScannerBtn">Cerrar</button>
+            <button class="scanner-btn secondary" id="switchCameraBtn" style="display:none">Cambiar cámara</button>
+        </div>
+    </div>
+
+    <!-- Sidebar toggle -->
+    <button class="sidebar-toggle-btn" id="lectorSidebarToggle" style="position:fixed;top:18px;left:18px;z-index:2100" title="Menú">
+        <span id="lectorSidebarIcon">&#9776;</span>
+    </button>
+
+    <div class="consultor-title">CONSULTOR DE PRECIOS</div>
+
+    <div class="main-container">
+        <!-- Carousel -->
+        <div class="logo-section">
+            <div class="carrusel-container" id="carruselPromos">
+                <div class="no-promos-placeholder" id="noPromosPlaceholder">
+                    <div class="icon-promo">🏪</div>
+                    <strong style="font-size:1.3rem">El Faro de Algarrobo</strong>
+                    <span style="font-size:.95rem;text-align:center;max-width:280px">Sube imágenes en Imágenes de Promociones para verlas aquí</span>
+                </div>
+                <div class="carrusel-controles">
+                    <button class="carrusel-btn" id="carruselPrev" type="button">&#10094;</button>
+                    <button class="carrusel-btn" id="carruselNext" type="button">&#10095;</button>
+                </div>
+                <div class="carrusel-indicadores" id="carruselIndicadores"></div>
+            </div>
+        </div>
+
+        <!-- Marquee -->
+        <div class="texto-marquee-container">
+            <div class="texto-marquee">
+                <span>Precio Vecino es el programa de fidelización de clientes frecuentes de El Faro de Algarrobo. A través de esta iniciativa, quienes realicen compras de forma habitual en nuestro Minimarket podrán acceder a precios especiales.</span>
+                <span>Precio Vecino es el programa de fidelización de clientes frecuentes de El Faro de Algarrobo. A través de esta iniciativa, quienes realicen compras de forma habitual en nuestro Minimarket podrán acceder a precios especiales.</span>
+            </div>
+        </div>
+
+        <!-- Bottom scan bar -->
+        <div class="barra-roja">
+            <div class="scan-here">ESCANEA AQUÍ</div>
+            <div class="flechas">&#x25BC;&#x25BC;&#x25BC;</div>
+            <input type="text" id="codigo_barras" class="input input-barcode" autofocus maxlength="25">
+            <button id="btnCamara" class="button is-success" style="display:none;margin-bottom:1rem">
+                <span class="icon"><i class="fas fa-camera"></i></span>
+                <span>Usar cámara</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Product display card -->
+    <div class="producto-carta" id="productoCarta">
+        <div class="producto-carta-contenido" id="productoCartaContenido">
+            <span class="codigo-barras" id="codigoBarrasSpan"></span>
+            <span class="sku" id="skuSpan"></span>
+            <h2 class="producto-nombre" id="productoNombre"></h2>
+            <h1 class="producto-precio" id="productoPrecio"></h1>
+            <div class="precio-vecino-container" id="precioVecinoContainer" style="display:none">
+                <span class="precio-vecino-label">Precio Vecino</span>
+                <span class="precio-vecino-valor" id="precioVecinoValor"></span>
+                <span class="precio-vecino-nota">PARA ACCEDER A ESTE PRECIO, DEBES ESTAR INSCRITO Y CUMPLIR CON LOS REQUISITOS DEL PROGRAMA PRECIO VECINO.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     PAGE: LISTA PRODUCTOS
+===================================================================== -->
+<div id="page-lista" class="page">
+    <nav class="shared-navbar">
+        <button class="sidebar-toggle-btn" id="listaSidebarToggle" title="Menú"><span id="listaSidebarIcon">&#9776;</span></button>
+        <div class="nav-links">
+            <a data-page="agregar">Agregar Producto</a>
+            <a data-page="lista">Lista de Productos</a>
+        </div>
+    </nav>
+    <div class="lista-container">
+        <h1 class="title has-text-centered has-text-danger">Lista de Productos</h1>
+        <div class="import-row" style="margin-bottom:1.2rem">
+            <button class="button is-success is-small" id="exportCsvBtn"><i class="fas fa-download"></i>&nbsp;Exportar CSV</button>
+            <label class="button is-light is-small" style="cursor:pointer"><i class="fas fa-upload"></i>&nbsp;Importar CSV<input type="file" id="importCsvInput" accept=".csv" style="display:none"></label>
+            <span style="font-size:.82rem;color:#888">Columnas: nombre, sku, codigo_barras, precio, precio_vecino</span>
+        </div>
+        <div class="rows-per-page">
+            <label for="rowsPerPage"><strong>Filas por página:</strong></label>
+            <div class="select"><select id="rowsPerPage">
+                <option value="10">10</option><option value="20">20</option>
+                <option value="30">30</option><option value="50">50</option><option value="100">100</option>
+            </select></div>
+        </div>
+        <div class="field search-box">
+            <div class="control has-icons-left">
+                <input id="buscador" class="input" type="text" placeholder="Buscar por nombre, SKU o código de barras...">
+                <span class="icon is-left"><i class="fas fa-search"></i></span>
+            </div>
+        </div>
+        <div class="table-container">
+        <table class="table is-striped is-fullwidth is-hoverable" id="tablaProductos">
+            <thead><tr>
+                <th>Nombre</th><th>SKU</th><th>Código de Barras</th>
+                <th>Precio</th><th>Precio Vecino</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="tablaBody"></tbody>
+        </table>
+        </div>
+        <nav class="pagination is-centered" id="paginacion" role="navigation"></nav>
+    </div>
+</div>
+
+<!-- =====================================================================
+     PAGE: AGREGAR PRODUCTO
+===================================================================== -->
+<div id="page-agregar" class="page">
+    <nav class="shared-navbar">
+        <button class="sidebar-toggle-btn" id="agregarSidebarToggle" title="Menú"><span id="agregarSidebarIcon">&#9776;</span></button>
+        <div class="nav-links">
+            <a data-page="agregar">Agregar Producto</a>
+            <a data-page="lista">Lista de Productos</a>
+        </div>
+    </nav>
+    <div class="form-container">
+        <h1 class="title has-text-centered has-text-danger">Agregar Producto</h1>
+        <div id="agregarMsg" style="display:none"></div>
+        <form id="formAgregar" autocomplete="off">
+            <div class="field"><label class="label">Nombre *</label>
+                <div class="control"><input class="input" type="text" id="addNombre" required placeholder="Ej: Coca Cola 1.5L"></div></div>
+            <div class="field"><label class="label">SKU</label>
+                <div class="control"><input class="input" type="text" id="addSku" placeholder="Ej: CC1500"></div></div>
+            <div class="field"><label class="label">Código de Barras *</label>
+                <div class="control"><input class="input" type="text" id="addCodigo" required placeholder="Ej: 7802800710219" pattern="\d{4,25}" title="Solo dígitos (4-25 caracteres)"></div></div>
+            <div class="field"><label class="label">Precio *</label>
+                <div class="control"><input class="input" type="number" id="addPrecio" required min="0" max="9999999" step="1" placeholder="Ej: 1500"></div></div>
+            <div class="field"><label class="label">Precio Vecino</label>
+                <div class="control"><input class="input" type="number" id="addPrecioVecino" min="0" max="9999999" step="1" placeholder="Ej: 1200 (opcional)"></div></div>
+            <div class="field is-grouped is-grouped-centered" style="margin-top:1.5rem">
+                <div class="control"><button type="submit" class="button is-success">Agregar</button></div>
+                <div class="control"><button type="button" class="button is-light" data-page="lista">Ver Lista</button></div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =====================================================================
+     PAGE: EDITAR PRODUCTO
+===================================================================== -->
+<div id="page-editar" class="page">
+    <nav class="shared-navbar">
+        <button class="sidebar-toggle-btn" id="editarSidebarToggle" title="Menú"><span id="editarSidebarIcon">&#9776;</span></button>
+        <div class="nav-links">
+            <a data-page="agregar">Agregar Producto</a>
+            <a data-page="lista">Lista de Productos</a>
+        </div>
+    </nav>
+    <div class="form-container">
+        <h1 class="title has-text-centered has-text-danger">Editar Producto</h1>
+        <div id="editarMsg" style="display:none"></div>
+        <form id="formEditar" autocomplete="off">
+            <input type="hidden" id="editId">
+            <div class="field"><label class="label">Nombre *</label>
+                <div class="control"><input class="input" type="text" id="editNombre" required></div></div>
+            <div class="field"><label class="label">SKU</label>
+                <div class="control"><input class="input" type="text" id="editSku"></div></div>
+            <div class="field"><label class="label">Código de Barras *</label>
+                <div class="control"><input class="input" type="text" id="editCodigo" required pattern="\d{4,25}"></div></div>
+            <div class="field"><label class="label">Precio *</label>
+                <div class="control"><input class="input" type="number" id="editPrecio" required min="0" max="9999999" step="1"></div></div>
+            <div class="field"><label class="label">Precio Vecino</label>
+                <div class="control"><input class="input" type="number" id="editPrecioVecino" min="0" max="9999999" step="1"></div></div>
+            <div class="field is-grouped is-grouped-centered" style="margin-top:1.5rem">
+                <div class="control"><button type="submit" class="button is-success">Guardar</button></div>
+                <div class="control"><button type="button" class="button is-light" data-page="lista">Cancelar</button></div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =====================================================================
+     PAGE: MANTENEDOR DE PROMOCIONES
+===================================================================== -->
+<div id="page-promos" class="page">
+    <nav class="shared-navbar">
+        <button class="sidebar-toggle-btn" id="promosSidebarToggle" title="Menú"><span id="promosSidebarIcon">&#9776;</span></button>
+    </nav>
+    <div class="promos-container">
+        <h1 class="title" style="font-weight:900;letter-spacing:1px;color:var(--red);text-align:center;margin-bottom:2rem">Mantenedor de Imágenes de Promociones</h1>
+        <div id="promosMsg" style="display:none"></div>
+        <form id="formPromos">
+            <div class="field">
+                <label class="label">Subir nueva imagen</label>
+                <div class="control">
+                    <input class="input" type="file" id="promoImagen" accept="image/*" required style="height:auto;padding:.4rem">
+                </div>
+                <p class="help">La imagen se guardará en el navegador (localStorage).</p>
+            </div>
+            <div class="field">
+                <label class="label">Nombre (opcional)</label>
+                <div class="control"><input class="input" type="text" id="promoNombre" placeholder="Ej: Oferta de la semana"></div>
+            </div>
+            <button class="button is-success" type="submit">Subir</button>
+        </form>
+        <hr>
+        <h2 class="subtitle" style="font-weight:700;color:var(--green);margin-top:2.5rem;margin-bottom:1.2rem;text-align:center">Imágenes actuales</h2>
+        <div class="promo-list" id="promoList"></div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     MODAL: Delete confirmation
+===================================================================== -->
+<div class="modal-backdrop" id="modalEliminar" style="display:none">
+    <div class="modal-box">
+        <h3>¿Eliminar producto?</h3>
+        <p id="modalEliminarNombre" style="color:#555;font-size:1rem"></p>
+        <div class="modal-actions">
+            <button class="button is-light" id="modalCancelarBtn">Cancelar</button>
+            <button class="button is-danger" id="modalConfirmarBtn">Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     TOAST
+===================================================================== -->
+<div id="toast"></div>
+
+<!-- Demo badge -->
+<div class="demo-badge">📦 Datos guardados en el navegador</div>
+
+<!-- =====================================================================
+     SCRIPTS
+===================================================================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script>
+'use strict';
+/* ======================================================================
+   STORAGE LAYER — all product & promo data lives in localStorage
+====================================================================== */
+const DB_KEY = 'elfaro_productos';
+const PROMOS_KEY = 'elfaro_promos';
+
+function getProductos() {
+    try { return JSON.parse(localStorage.getItem(DB_KEY) || '[]'); }
+    catch(e) { return []; }
+}
+function saveProductos(arr) {
+    localStorage.setItem(DB_KEY, JSON.stringify(arr));
+}
+function getPromos() {
+    try { return JSON.parse(localStorage.getItem(PROMOS_KEY) || '[]'); }
+    catch(e) { return []; }
+}
+function savePromos(arr) {
+    localStorage.setItem(PROMOS_KEY, JSON.stringify(arr));
+}
+function nextId(arr) {
+    return arr.length > 0 ? Math.max(...arr.map(p => p.id || 0)) + 1 : 1;
+}
+
+/* ======================================================================
+   ROUTER — hash-based navigation
+====================================================================== */
+const PAGES = ['lector','lista','agregar','editar','promos'];
+let currentPage = 'lector';
+
+function showPage(name) {
+    if (!PAGES.includes(name)) name = 'lector';
+    currentPage = name;
+    PAGES.forEach(p => {
+        const el = document.getElementById('page-' + p);
+        if (el) {
+            if (p === 'lector') {
+                el.classList.toggle('active', p === name);
+            } else {
+                el.classList.toggle('active', p === name);
+                el.style.display = p === name ? 'block' : 'none';
+            }
+        }
+    });
+    // Update sidebar active link
+    document.querySelectorAll('.sidebar-link').forEach(a => {
+        a.classList.toggle('active', a.dataset.page === name);
+    });
+    // Close sidebar
+    closeSidebar();
+    // Special init per page
+    if (name === 'lector') {
+        initLector();
+    } else if (name === 'lista') {
+        renderTabla();
+    } else if (name === 'promos') {
+        renderPromos();
+    }
+    location.hash = name;
+}
+
+// Init pages at start
+PAGES.forEach(p => {
+    const el = document.getElementById('page-' + p);
+    if (el && p !== 'lector') el.style.display = 'none';
+});
+
+window.addEventListener('hashchange', () => {
+    const hash = location.hash.replace('#', '');
+    if (PAGES.includes(hash)) showPage(hash);
+});
+
+// Handle clicks on data-page links & buttons
+document.addEventListener('click', e => {
+    const t = e.target.closest('[data-page]');
+    if (t) { e.preventDefault(); showPage(t.dataset.page); }
+});
+
+/* ======================================================================
+   SIDEBAR (shared)
+====================================================================== */
+let sidebarOpen = false;
+
+function closeSidebar() {
+    sidebarOpen = false;
+    document.getElementById('sidebar').classList.remove('open');
+    ['lector','lista','agregar','editar','promos'].forEach(p => {
+        const icon = document.getElementById(p + 'SidebarIcon');
+        if (icon) icon.innerHTML = '&#9776;';
+    });
+}
+
+function toggleSidebar(page) {
+    sidebarOpen = !sidebarOpen;
+    document.getElementById('sidebar').classList.toggle('open', sidebarOpen);
+    const icon = document.getElementById(page + 'SidebarIcon');
+    if (icon) icon.innerHTML = sidebarOpen ? '&times;' : '&#9776;';
+}
+
+['lector','lista','agregar','editar','promos'].forEach(p => {
+    const btn = document.getElementById(p + 'SidebarToggle');
+    if (btn) btn.addEventListener('click', e => { e.stopPropagation(); toggleSidebar(p); });
+});
+
+document.addEventListener('click', e => {
+    if (!sidebarOpen) return;
+    if (!document.getElementById('sidebar').contains(e.target) &&
+        !e.target.closest('.sidebar-toggle-btn')) {
+        closeSidebar();
+    }
+});
+
+/* ======================================================================
+   TOAST
+====================================================================== */
+function showToast(msg, type = 'is-success', duration = 2800) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'show ' + type;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.className = ''; }, duration);
+}
+
+/* ======================================================================
+   UTILITY
+====================================================================== */
+function formatoCLP(v) {
+    const n = parseInt(v);
+    if (isNaN(n)) return '';
+    return '$' + n.toLocaleString('es-CL');
+}
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function validarCodigo(c) { return /^\d{4,25}$/.test(c.trim()); }
+
+/* ======================================================================
+   PAGE: LECTOR — carousel & barcode scanning
+====================================================================== */
+let lectorInited = false;
+let carruselIdx = 0;
+let carruselInterval = null;
+
+function initLector() {
+    buildCarrusel();
+    if (!lectorInited) {
+        lectorInited = true;
+        setupBarcodeInput();
+        setupCamera();
+        toggleCamaraBtn();
+        window.addEventListener('resize', toggleCamaraBtn);
+    }
+    setTimeout(() => {
+        const inp = document.getElementById('codigo_barras');
+        if (inp) { inp.focus(); inp.select(); }
+    }, 100);
+}
+
+function buildCarrusel() {
+    const promos = getPromos();
+    const container = document.getElementById('carruselPromos');
+    const placeholder = document.getElementById('noPromosPlaceholder');
+    const indicadores = document.getElementById('carruselIndicadores');
+
+    // Remove old imgs
+    container.querySelectorAll('.carrusel-img').forEach(el => el.remove());
+    indicadores.innerHTML = '';
+    carruselIdx = 0;
+    clearInterval(carruselInterval);
+
+    if (promos.length === 0) {
+        placeholder.style.display = 'flex';
+        document.getElementById('carruselPrev').style.display = 'none';
+        document.getElementById('carruselNext').style.display = 'none';
+        return;
+    }
+    placeholder.style.display = 'none';
+    document.getElementById('carruselPrev').style.display = '';
+    document.getElementById('carruselNext').style.display = '';
+
+    promos.forEach((p, i) => {
+        const img = document.createElement('img');
+        img.className = 'carrusel-img' + (i === 0 ? ' active' : '');
+        img.src = p.dataUrl;
+        img.alt = p.nombre || 'Promoción';
+        container.insertBefore(img, container.querySelector('.carrusel-controles'));
+
+        const dot = document.createElement('div');
+        dot.className = 'carrusel-indicador' + (i === 0 ? ' active' : '');
+        dot.addEventListener('click', () => { carruselMostrar(i); reiniciarCarrusel(); });
+        indicadores.appendChild(dot);
+    });
+
+    function reiniciarCarrusel() {
+        clearInterval(carruselInterval);
+        carruselInterval = setInterval(() => carruselMostrar((carruselIdx + 1) % promos.length), 5000);
+    }
+    reiniciarCarrusel();
+
+    document.getElementById('carruselPrev').onclick = () => {
+        carruselMostrar((carruselIdx - 1 + promos.length) % promos.length);
+        reiniciarCarrusel();
+    };
+    document.getElementById('carruselNext').onclick = () => {
+        carruselMostrar((carruselIdx + 1) % promos.length);
+        reiniciarCarrusel();
+    };
+}
+
+function carruselMostrar(n) {
+    const imgs = document.querySelectorAll('.carrusel-img');
+    const dots = document.querySelectorAll('.carrusel-indicador');
+    imgs.forEach((img, i) => img.classList.toggle('active', i === n));
+    dots.forEach((d, i) => d.classList.toggle('active', i === n));
+    carruselIdx = n;
+}
+
+/* — barcode input — */
+let busquedaEnCurso = false;
+
+function setupBarcodeInput() {
+    const input = document.getElementById('codigo_barras');
+    // keep focus
+    document.addEventListener('click', e => {
+        if (!document.getElementById('scannerOverlay').style.display.includes('flex') &&
+            !document.getElementById('productoCarta').style.display.includes('flex')) {
+            input.focus();
+        }
+    });
+    input.addEventListener('input', e => {
+        e.target.value = e.target.value.replace(/[^\d]/g, '');
+    });
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && input.value.length > 0) {
+            e.preventDefault();
+            procesarCodigo(input.value, 'teclado');
+        }
+    });
+}
+
+function procesarCodigo(codigoRaw, fuente) {
+    if (busquedaEnCurso) return;
+    busquedaEnCurso = true;
+
+    const codigo = codigoRaw.trim();
+    if (!validarCodigo(codigo)) {
+        mostrarErrorLector('Código inválido', `"${codigo}" no es válido. Solo números (4-25 dígitos).`);
+        return;
+    }
+
+    if (fuente === 'camara') cerrarEscaner();
+
+    const carta = document.getElementById('productoCarta');
+    const cartaContenido = document.getElementById('productoCartaContenido');
+    const lector = document.getElementById('page-lector');
+
+    lector.classList.add('hidden');
+    carta.style.display = 'flex';
+    cartaContenido.innerHTML = `<div style="text-align:center;color:#666;font-size:1.5rem">🔍 Buscando producto...<br><strong style="color:#000;font-size:1.8rem">${escHtml(codigo)}</strong></div>`;
+    document.getElementById('codigo_barras').value = '';
+
+    // Search locally
+    setTimeout(() => {
+        const productos = getProductos();
+        const producto = productos.find(p => p.codigo_barras === codigo);
+        if (producto) {
+            mostrarProducto(producto, codigo);
+        } else {
+            mostrarErrorLector('Producto no encontrado', `No se encontró producto con código: ${escHtml(codigo)}`);
+        }
+    }, 300); // small delay for UX
+}
+
+function mostrarErrorLector(titulo, msg) {
+    const carta = document.getElementById('productoCarta');
+    const cartaContenido = document.getElementById('productoCartaContenido');
+    cartaContenido.innerHTML = `<div class="error-msg">${escHtml(titulo)}<br><small style="font-size:1.2rem">${msg}</small></div>`;
+    carta.style.display = 'flex';
+    setTimeout(() => {
+        carta.style.display = 'none';
+        document.getElementById('page-lector').classList.remove('hidden');
+        busquedaEnCurso = false;
+        document.getElementById('codigo_barras').focus();
+    }, 4000);
+}
+
+function mostrarProducto(data, codigoBuscado) {
+    const carta = document.getElementById('productoCarta');
+    const cartaContenido = document.getElementById('productoCartaContenido');
+    cartaContenido.innerHTML = `
+        <span class="codigo-barras">${escHtml(data.codigo_barras || codigoBuscado)}</span>
+        <span class="sku">${data.sku ? 'SKU: ' + escHtml(data.sku) : ''}</span>
+        <h2 class="producto-nombre">${escHtml(data.nombre)}</h2>
+        <div class="precio-normal-container">
+            <span class="precio-normal-label">PRECIO NORMAL</span>
+            <span class="producto-precio">${formatoCLP(data.precio)}</span>
+        </div>
+        ${data.precio_vecino ? `
+        <div class="precio-vecino-container">
+            <span class="precio-vecino-label">Precio Vecino</span>
+            <span class="precio-vecino-valor">${formatoCLP(data.precio_vecino)}</span>
+            <span class="precio-vecino-nota">PARA ACCEDER A ESTE PRECIO, DEBES ESTAR INSCRITO Y CUMPLIR CON LOS REQUISITOS DEL PROGRAMA PRECIO VECINO.</span>
+        </div>` : ''}
+    `;
+    carta.style.display = 'flex';
+    setTimeout(() => {
+        carta.style.display = 'none';
+        document.getElementById('page-lector').classList.remove('hidden');
+        busquedaEnCurso = false;
+        document.getElementById('codigo_barras').focus();
+    }, 5000);
+}
+
+/* ======================================================================
+   CAMERA / BARCODE SCANNER (QuaggaJS)
+====================================================================== */
+let stream = null;
+let scannerActive = false;
+let cameras = [];
+let currentCameraIndex = 0;
+
+function esMobile() {
+    const ua = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent);
+    const small = window.innerWidth <= 768;
+    const touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    return [ua, small, touch].filter(Boolean).length >= 2;
+}
+
+function toggleCamaraBtn() {
+    const show = esMobile();
+    document.getElementById('cameraBtn').style.display = show ? 'flex' : 'none';
+    document.getElementById('btnCamara').style.display = show ? 'block' : 'none';
+}
+
+function setupCamera() {
+    const cameraBtn = document.getElementById('cameraBtn');
+    const btnCamara = document.getElementById('btnCamara');
+    const closeScannerBtn = document.getElementById('closeScannerBtn');
+    const switchCameraBtn = document.getElementById('switchCameraBtn');
+
+    cameraBtn.addEventListener('click', () => abrirEscaner());
+    btnCamara.addEventListener('click', () => abrirEscaner());
+    closeScannerBtn.addEventListener('click', () => cerrarEscaner());
+    switchCameraBtn.addEventListener('click', () => {
+        currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+        iniciarCamara();
+    });
+}
+
+async function abrirEscaner() {
+    const overlay = document.getElementById('scannerOverlay');
+    overlay.style.display = 'flex';
+    document.getElementById('scannerStatus').textContent = 'Iniciando cámara...';
+    scannerActive = true;
+    await detectarCamaras();
+    await iniciarCamara();
+    iniciarQuagga();
+}
+
+function cerrarEscaner() {
+    const overlay = document.getElementById('scannerOverlay');
+    overlay.style.display = 'none';
+    scannerActive = false;
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    try { Quagga.stop(); } catch(e) {}
+}
+
+async function detectarCamaras() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameras = devices.filter(d => d.kind === 'videoinput');
+        const switchBtn = document.getElementById('switchCameraBtn');
+        switchBtn.style.display = (!esMobile() && cameras.length > 1) ? 'inline-block' : 'none';
+    } catch(e) { cameras = []; }
+}
+
+function getCameraConstraints() {
+    if (esMobile()) {
+        return { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } };
+    }
+    if (cameras.length > 0 && cameras[currentCameraIndex]) {
+        return { video: { deviceId: { exact: cameras[currentCameraIndex].deviceId } } };
+    }
+    return { video: true };
+}
+
+async function iniciarCamara() {
+    try {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); }
+        const constraints = getCameraConstraints();
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const video = document.getElementById('scannerVideo');
+        video.srcObject = stream;
+        document.getElementById('scannerStatus').textContent = 'Cámara activa. Busca un código de barras...';
+    } catch(e) {
+        document.getElementById('scannerStatus').textContent = 'Error al acceder a la cámara: ' + e.message;
+    }
+}
+
+function iniciarQuagga() {
+    const video = document.getElementById('scannerVideo');
+    // Wait for video to be ready
+    video.addEventListener('loadedmetadata', startQ, {once: true});
+}
+
+function startQ() {
+    try {
+        Quagga.init({
+            inputStream: { name:'Live', type:'LiveStream', target: document.getElementById('scannerVideo'),
+                constraints: { facingMode: esMobile() ? 'environment' : 'user', width:640, height:480 } },
+            decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader','code_39_reader'] }
+        }, err => {
+            if (err) { console.warn('Quagga init:', err); return; }
+            Quagga.start();
+            Quagga.onDetected(result => {
+                const code = result.codeResult.code;
+                if (code && scannerActive) {
+                    Quagga.stop();
+                    procesarCodigo(code, 'camara');
+                }
+            });
+        });
+    } catch(e) { console.warn('Quagga error:', e); }
+}
+
+/* ======================================================================
+   PAGE: LISTA — render table
+====================================================================== */
+let tablaCurrentPage = 1;
+let tablaRowsPerPage = 10;
+let tablaSearch = '';
+let productoAEliminarId = null;
+
+function renderTabla() {
+    const productos = getProductos();
+    const busqueda = tablaSearch.toLowerCase();
+    const filtrados = productos.filter(p =>
+        (p.nombre || '').toLowerCase().includes(busqueda) ||
+        (p.sku || '').toLowerCase().includes(busqueda) ||
+        (p.codigo_barras || '').includes(busqueda)
+    );
+    const total = filtrados.length;
+    const totalPages = Math.max(1, Math.ceil(total / tablaRowsPerPage));
+    if (tablaCurrentPage > totalPages) tablaCurrentPage = totalPages;
+    const inicio = (tablaCurrentPage - 1) * tablaRowsPerPage;
+    const pagina = filtrados.slice(inicio, inicio + tablaRowsPerPage);
+
+    const tbody = document.getElementById('tablaBody');
+    if (pagina.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="has-text-centered">${total === 0 && tablaSearch === '' ? 'No hay productos. <a data-page="agregar">Agrega uno</a>.' : 'Sin resultados para "' + escHtml(tablaSearch) + '".'}</td></tr>`;
+    } else {
+        tbody.innerHTML = pagina.map(p => `
+            <tr>
+                <td>${escHtml(p.nombre)}</td>
+                <td>${escHtml(p.sku || '')}</td>
+                <td>${escHtml(p.codigo_barras)}</td>
+                <td>${formatoCLP(p.precio)}</td>
+                <td>${p.precio_vecino ? formatoCLP(p.precio_vecino) : '—'}</td>
+                <td style="white-space:nowrap">
+                    <button class="button is-small is-info" data-edit="${p.id}">Editar</button>
+                    <button class="button is-small is-danger" data-delete="${p.id}" data-name="${escHtml(p.nombre)}">Eliminar</button>
+                </td>
+            </tr>`).join('');
+    }
+    renderPaginacion(totalPages);
+}
+
+function renderPaginacion(totalPages) {
+    const nav = document.getElementById('paginacion');
+    if (totalPages <= 1) { nav.innerHTML = ''; return; }
+    let html = `<a class="pagination-previous" ${tablaCurrentPage===1?'disabled':''}>Anterior</a>
+                <a class="pagination-next" ${tablaCurrentPage===totalPages?'disabled':''}>Siguiente</a>
+                <ul class="pagination-list">`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (i===1||i===totalPages||Math.abs(i-tablaCurrentPage)<=2) {
+            html += `<li><a class="pagination-link${i===tablaCurrentPage?' is-current':''}" data-pg="${i}">${i}</a></li>`;
+        } else if (i===tablaCurrentPage-3||i===tablaCurrentPage+3) {
+            html += `<li><span class="pagination-ellipsis">&hellip;</span></li>`;
+        }
+    }
+    html += '</ul>';
+    nav.innerHTML = html;
+}
+
+// Event delegation for tabla
+document.getElementById('tablaBody').addEventListener('click', e => {
+    const editBtn = e.target.closest('[data-edit]');
+    const delBtn = e.target.closest('[data-delete]');
+    if (editBtn) {
+        const id = parseInt(editBtn.dataset.edit);
+        abrirEditar(id);
+    }
+    if (delBtn) {
+        productoAEliminarId = parseInt(delBtn.dataset.delete);
+        document.getElementById('modalEliminarNombre').textContent = delBtn.dataset.name;
+        document.getElementById('modalEliminar').style.display = 'flex';
+    }
+});
+
+document.getElementById('paginacion').addEventListener('click', e => {
+    const pgBtn = e.target.closest('[data-pg]');
+    const prev = e.target.closest('.pagination-previous');
+    const next = e.target.closest('.pagination-next');
+    if (pgBtn) { tablaCurrentPage = parseInt(pgBtn.dataset.pg); renderTabla(); }
+    if (prev && tablaCurrentPage > 1) { tablaCurrentPage--; renderTabla(); }
+    if (next) { tablaCurrentPage++; renderTabla(); }
+});
+
+document.getElementById('buscador').addEventListener('input', e => {
+    tablaSearch = e.target.value;
+    tablaCurrentPage = 1;
+    renderTabla();
+});
+document.getElementById('rowsPerPage').addEventListener('change', e => {
+    tablaRowsPerPage = parseInt(e.target.value);
+    tablaCurrentPage = 1;
+    renderTabla();
+});
+
+// Modal
+document.getElementById('modalCancelarBtn').addEventListener('click', () => {
+    document.getElementById('modalEliminar').style.display = 'none';
+    productoAEliminarId = null;
+});
+document.getElementById('modalConfirmarBtn').addEventListener('click', () => {
+    if (productoAEliminarId !== null) {
+        const productos = getProductos().filter(p => p.id !== productoAEliminarId);
+        saveProductos(productos);
+        productoAEliminarId = null;
+        document.getElementById('modalEliminar').style.display = 'none';
+        renderTabla();
+        showToast('Producto eliminado', 'is-danger');
+    }
+});
+
+/* ======================================================================
+   CSV IMPORT / EXPORT
+====================================================================== */
+document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    const productos = getProductos();
+    if (productos.length === 0) { showToast('No hay productos para exportar', 'is-danger'); return; }
+    const header = 'nombre,sku,codigo_barras,precio,precio_vecino';
+    const rows = productos.map(p =>
+        [p.nombre, p.sku||'', p.codigo_barras, p.precio, p.precio_vecino||'']
+        .map(v => `"${String(v).replace(/"/g,'""')}"`)
+        .join(',')
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'productos_elfaro.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showToast(`${productos.length} productos exportados`);
+});
+
+document.getElementById('importCsvInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        try {
+            const text = ev.target.result;
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            const header = lines[0].toLowerCase().replace(/["\s]/g,'').split(',');
+            const iNombre = header.indexOf('nombre');
+            const iSku = header.indexOf('sku');
+            const iCodigo = header.indexOf('codigo_barras');
+            const iPrecio = header.indexOf('precio');
+            const iPrecioVecino = header.indexOf('precio_vecino');
+            if (iNombre < 0 || iCodigo < 0 || iPrecio < 0) {
+                showToast('CSV inválido: faltan columnas (nombre, codigo_barras, precio)', 'is-danger', 5000);
+                return;
+            }
+            function parseCSVLine(line) {
+                const result = []; let cur = ''; let inQ = false;
+                for (let i = 0; i < line.length; i++) {
+                    const c = line[i];
+                    if (c === '"') {
+                        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+                        else inQ = !inQ;
+                    } else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+                    else cur += c;
+                }
+                result.push(cur);
+                return result;
+            }
+            const existing = getProductos();
+            let added = 0, updated = 0, errors = 0;
+            for (let i = 1; i < lines.length; i++) {
+                const cols = parseCSVLine(lines[i]);
+                const nombre = cols[iNombre] || '';
+                const sku = iSku >= 0 ? (cols[iSku] || '') : '';
+                const codigo = cols[iCodigo] || '';
+                const precio = parseInt(cols[iPrecio]);
+                const precioVecino = iPrecioVecino >= 0 && cols[iPrecioVecino] ? parseInt(cols[iPrecioVecino]) : null;
+                if (!nombre || !validarCodigo(codigo) || isNaN(precio)) { errors++; continue; }
+                const idx = existing.findIndex(p => p.codigo_barras === codigo);
+                if (idx >= 0) {
+                    existing[idx] = {...existing[idx], nombre, sku, precio, precio_vecino: precioVecino || null};
+                    updated++;
+                } else {
+                    existing.push({id: nextId(existing), nombre, sku, codigo_barras: codigo, precio, precio_vecino: precioVecino || null});
+                    added++;
+                }
+            }
+            saveProductos(existing);
+            renderTabla();
+            showToast(`Importado: ${added} nuevos, ${updated} actualizados${errors ? ', ' + errors + ' errores' : ''}`, 'is-success', 4000);
+        } catch(ex) {
+            showToast('Error al leer el CSV: ' + ex.message, 'is-danger', 5000);
+        }
+    };
+    reader.readAsText(file, 'UTF-8');
+    e.target.value = '';
+});
+
+/* ======================================================================
+   PAGE: AGREGAR PRODUCTO
+====================================================================== */
+document.getElementById('formAgregar').addEventListener('submit', e => {
+    e.preventDefault();
+    const nombre = document.getElementById('addNombre').value.trim();
+    const sku = document.getElementById('addSku').value.trim();
+    const codigo = document.getElementById('addCodigo').value.trim();
+    const precio = parseInt(document.getElementById('addPrecio').value);
+    const precioVecino = document.getElementById('addPrecioVecino').value ? parseInt(document.getElementById('addPrecioVecino').value) : null;
+
+    if (!validarCodigo(codigo)) {
+        showMsg('agregarMsg', 'Código de barras inválido (solo dígitos, 4-25)', 'danger');
+        return;
+    }
+    const productos = getProductos();
+    if (productos.some(p => p.codigo_barras === codigo)) {
+        showMsg('agregarMsg', 'Ya existe un producto con ese código de barras', 'danger');
+        return;
+    }
+    productos.push({ id: nextId(productos), nombre, sku, codigo_barras: codigo, precio, precio_vecino: precioVecino });
+    saveProductos(productos);
+    showMsg('agregarMsg', '✅ Producto agregado correctamente', 'success');
+    document.getElementById('formAgregar').reset();
+    setTimeout(() => hideMsg('agregarMsg'), 3000);
+});
+
+/* ======================================================================
+   PAGE: EDITAR PRODUCTO
+====================================================================== */
+function abrirEditar(id) {
+    const productos = getProductos();
+    const p = productos.find(x => x.id === id);
+    if (!p) { showToast('Producto no encontrado', 'is-danger'); return; }
+    document.getElementById('editId').value = id;
+    document.getElementById('editNombre').value = p.nombre;
+    document.getElementById('editSku').value = p.sku || '';
+    document.getElementById('editCodigo').value = p.codigo_barras;
+    document.getElementById('editPrecio').value = p.precio;
+    document.getElementById('editPrecioVecino').value = p.precio_vecino || '';
+    showPage('editar');
+}
+
+document.getElementById('formEditar').addEventListener('submit', e => {
+    e.preventDefault();
+    const id = parseInt(document.getElementById('editId').value);
+    const nombre = document.getElementById('editNombre').value.trim();
+    const sku = document.getElementById('editSku').value.trim();
+    const codigo = document.getElementById('editCodigo').value.trim();
+    const precio = parseInt(document.getElementById('editPrecio').value);
+    const precioVecino = document.getElementById('editPrecioVecino').value ? parseInt(document.getElementById('editPrecioVecino').value) : null;
+
+    if (!validarCodigo(codigo)) {
+        showMsg('editarMsg', 'Código de barras inválido', 'danger');
+        return;
+    }
+    const productos = getProductos();
+    const duplicado = productos.find(p => p.codigo_barras === codigo && p.id !== id);
+    if (duplicado) {
+        showMsg('editarMsg', 'Ya existe otro producto con ese código de barras', 'danger');
+        return;
+    }
+    const idx = productos.findIndex(p => p.id === id);
+    if (idx < 0) { showMsg('editarMsg', 'Producto no encontrado', 'danger'); return; }
+    productos[idx] = { id, nombre, sku, codigo_barras: codigo, precio, precio_vecino: precioVecino };
+    saveProductos(productos);
+    showToast('Producto actualizado', 'is-success');
+    showPage('lista');
+});
+
+/* ======================================================================
+   PAGE: PROMOCIONES
+====================================================================== */
+function renderPromos() {
+    const promos = getPromos();
+    const list = document.getElementById('promoList');
+    if (promos.length === 0) {
+        list.innerHTML = '<div style="color:#888;text-align:center;width:100%">No hay imágenes.</div>';
+        return;
+    }
+    list.innerHTML = promos.map(p => `
+        <div class="promo-item">
+            <img src="${p.dataUrl}" class="promo-img" alt="${escHtml(p.nombre || 'Promoción')}">
+            <div class="promo-nombre">${escHtml(p.nombre || '')}</div>
+            <button class="button is-danger is-small" style="margin-top:8px" data-del-promo="${p.id}">Eliminar</button>
+        </div>`).join('');
+}
+
+document.getElementById('promoList').addEventListener('click', e => {
+    const btn = e.target.closest('[data-del-promo]');
+    if (!btn) return;
+    const id = parseInt(btn.dataset.delPromo);
+    savePromos(getPromos().filter(p => p.id !== id));
+    renderPromos();
+    buildCarrusel(); // refresh carousel
+    showToast('Imagen eliminada', 'is-danger');
+});
+
+document.getElementById('formPromos').addEventListener('submit', e => {
+    e.preventDefault();
+    const fileInput = document.getElementById('promoImagen');
+    const nombre = document.getElementById('promoNombre').value.trim();
+    const file = fileInput.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showMsg('promosMsg', 'Solo se permiten archivos de imagen', 'danger');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const promos = getPromos();
+        promos.push({ id: nextId(promos), nombre, dataUrl: ev.target.result });
+        savePromos(promos);
+        renderPromos();
+        buildCarrusel(); // update carousel
+        showToast('Imagen subida correctamente');
+        document.getElementById('formPromos').reset();
+    };
+    reader.onerror = () => showMsg('promosMsg', 'Error al leer la imagen', 'danger');
+    reader.readAsDataURL(file);
+});
+
+/* ======================================================================
+   MESSAGE HELPERS
+====================================================================== */
+function showMsg(id, msg, type) {
+    const el = document.getElementById(id);
+    el.style.display = 'block';
+    el.className = 'notification is-' + type;
+    el.textContent = msg;
+}
+function hideMsg(id) {
+    const el = document.getElementById(id);
+    el.style.display = 'none';
+}
+
+/* ======================================================================
+   BOOT
+====================================================================== */
+(function boot() {
+    // Navigate to hash or default
+    const hash = location.hash.replace('#', '');
+    showPage(PAGES.includes(hash) ? hash : 'lector');
+})();
+</script>
+</body>
+</html>
