@@ -5,3 +5,6 @@ media/
 emails_fallback/
 .env
 *.log
+staticfiles/
+venv/
+.venv/
