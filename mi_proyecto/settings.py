@@ -12,9 +12,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.http import JsonResponse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Quick-start development settings - unsuitable for production
@@ -50,12 +54,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'elFaro',
-        'django_extensions',
+    'django_extensions',
+    'corsheaders',
 ]
 
 SECURE_SSL_REDIRECT = False
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -83,6 +89,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'mi_proyecto.wsgi.application'
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 
 # Database
@@ -152,3 +166,28 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+#def buscar_producto_barcode(request):
+#    barcode = request.GET.get('barcode', '').strip()
+#    
+#    if not barcode:
+#        return JsonResponse({'error': 'Código de barras requerido'}, status=400)
+#    
+#    try:
+#        # Buscar el producto
+#        producto = Producto.objects.get(codigo_barras=barcode)
+#        
+#        # Asegurar que el código de barras mantenga el formato original
+#        codigo_barras = models.CharField(max_length=25, unique=True)
+#        
+#        return JsonResponse({
+#            'id': producto.id,
+#            'nombre': producto.nombre,
+#            'codigo_barras': codigo_completo,  # Usar el código original completo
+#            'precio': str(producto.precio),
+#            'precio_vecino': str(producto.precio_vecino) if producto.precio_vecino else None,
+#            'sku': producto.sku if hasattr(producto, 'sku') else None
+#        })
+#    except Producto.DoesNotExist:
+#        return JsonResponse({'error': 'Producto no encontrado'}, status=404)

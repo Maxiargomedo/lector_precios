@@ -11,6 +11,7 @@ urlpatterns = [
     path('editar_producto/<int:producto_id>/', views.editar_producto, name='editar_producto'),
     path('eliminar_producto/<int:producto_id>/', views.eliminar_producto, name='eliminar_producto'),
     path('agregar_producto/', views.agregar_producto, name='agregar_producto'),
+    path('importar-exportar-precios/', views.import_export_precios, name='import_export_precios'),
     path('export-productos-csv/', views.export_productos_csv, name='export_productos_csv'),
     # URLs de prueba y debug
     path('test-email/', views.test_email, name='test_email'),
@@ -19,6 +20,9 @@ urlpatterns = [
     path('test-correo-google/', views.test_correo_con_google, name='test_correo_google'),
     # En la lista urlpatterns, agregar estas nuevas URLs:
     path('test-google-simple/', views.test_google_simple, name='test_google_simple'),
+    path('buscar_producto_barcode/', views.buscar_producto_barcode, name='buscar_producto_barcode'),
+    path('api/imagenes_promociones/', views.api_imagenes_promociones, name='api_imagenes_promociones'),
+    path('api/imagenes_promociones/', views.imagenes_promociones, name='imagenes_promociones'),
 
 
 

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Importar / Exportar Lista de Precios</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:700,900&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Montserrat', Arial, sans-serif;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100%;
+            background: #222d32;
+            color: #fff;
+            padding-top: 60px;
+            transform: translateX(-220px);
+            transition: transform 0.3s;
+            z-index: 2001;
+            box-shadow: 2px 0 8px rgba(44,62,80,0.08);
+        }
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        .sidebar .sidebar-link {
+            display: block;
+            padding: 16px 32px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.08rem;
+            border-left: 4px solid transparent;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .sidebar .sidebar-link:hover,
+        .sidebar .sidebar-link.active {
+            background: #1a2226;
+            border-left: 4px solid #43a047;
+            color: #43a047;
+        }
+        .sidebar-toggle-btn {
+            background: #43a047;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            transition: background 0.2s;
+            margin-right: 1rem;
+        }
+        .sidebar-toggle-btn:hover {
+            background: #388e3c;
+        }
+        .contenido-principal {
+            transition: margin-left 0.3s;
+        }
+        .contenido-principal.shifted {
+            margin-left: 220px !important;
+        }
+        @media (max-width: 600px) {
+            .sidebar {
+                width: 170px;
+                padding-top: 50px;
+                transform: translateX(-170px);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-toggle-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1.2rem;
+                margin-right: 0.5rem;
+            }
+            .contenido-principal.shifted {
+                margin-left: 170px !important;
+            }
+        }
+        .container-box {
+            width: min(1320px, 96vw);
+            margin: 2.5rem auto;
+            background: #fff;
+            border-radius: 1.2rem;
+            box-shadow: 0 12px 32px rgba(44,62,80,0.14);
+            padding: 3rem 3rem 2.8rem 3rem;
+            position: relative;
+        }
+        .pagina-titulo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+        .pagina-titulo h1 {
+            margin: 0;
+            font-weight: 900;
+            color: #d32f2f;
+            font-size: 1.9rem;
+            letter-spacing: 0.5px;
+        }
+        .help-bubble {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: none;
+            background: #43a047;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 18px rgba(67, 160, 71, 0.25);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .help-bubble:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(67, 160, 71, 0.35);
+        }
+        .tutorial-panel {
+            display: none;
+            margin-top: 1.5rem;
+            border: 1px solid rgba(67, 160, 71, 0.2);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            background: #f1f8e9;
+            color: #2e7d32;
+        }
+        .tutorial-panel.active {
+            display: block;
+        }
+        .tutorial-panel h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+        .tutorial-panel ol {
+            margin-top: 0.5rem;
+            padding-left: 1.2rem;
+        }
+        .card-block {
+            margin-top: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 10px 24px rgba(44,62,80,0.12);
+            padding: 1.8rem;
+            background: #fff;
+            height: 100%;
+        }
+        .csv-preview {
+            margin-top: 1.4rem;
+        }
+        .csv-preview-info {
+            font-size: 0.9rem;
+            color: #455a64;
+            margin-bottom: 0.6rem;
+        }
+        .csv-preview .table-container {
+            max-height: 260px;
+            overflow: auto;
+            border-radius: 0.8rem;
+        }
+        .section-divider {
+            margin: 1.4rem 0;
+            border-top: 1px solid rgba(55, 71, 79, 0.12);
+            padding-top: 1.2rem;
+        }
+        .method-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #2e7d32;
+            margin-bottom: 0.75rem;
+        }
+        .method-label i {
+            color: #43a047;
+        }
+        .bsale-hint {
+            margin-top: 0.2rem;
+            margin-bottom: 0.85rem;
+            font-size: 0.88rem;
+            color: #546e7a;
+        }
+        .card h2 {
+            font-weight: 800;
+            color: #37474f;
+            margin-bottom: 0.8rem;
+        }
+        .card p {
+            color: #546e7a;
+            font-size: 0.95rem;
+        }
+        .radio + .radio {
+            margin-top: 0.8rem;
+        }
+        .help-text {
+            font-size: 0.85rem;
+            color: #78909c;
+            margin-left: 1.8rem;
+            margin-top: 0.3rem;
+        }
+        .messages {
+            margin-top: 1.5rem;
+        }
+        .notification {
+            border-radius: 0.8rem;
+        }
+        .file.is-boxed .file-cta {
+            border-radius: 0.8rem;
+        }
+        .file.is-boxed .file-name {
+            border-radius: 0.8rem;
+            margin-top: 0.6rem;
+            border: 2px dashed rgba(67,160,71,0.35);
+            color: #2e7d32;
+            background: rgba(225, 245, 233, 0.6);
+            font-weight: 600;
+        }
+        .file.is-boxed .file-name.ready {
+            border-color: rgba(67,160,71,0.75);
+            background: rgba(200, 230, 201, 0.8);
+        }
+        .action-buttons {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .action-buttons .button {
+            flex: 1 1 180px;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(33, 43, 54, 0.65);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 4000;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-card {
+            background: #ffffff;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 420px;
+            width: calc(100% - 2rem);
+            box-shadow: 0 18px 40px rgba(44,62,80,0.22);
+            text-align: center;
+        }
+        .modal-card h3 {
+            font-weight: 800;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            color: #d32f2f;
+        }
+        .modal-card p {
+            color: #455a64;
+            margin-bottom: 1.5rem;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .modal-actions .button {
+            flex: 1 1 150px;
+        }
+        .upload-status {
+            display: none;
+            margin-top: 1rem;
+            border-radius: 0.9rem;
+            padding: 0.85rem 1rem;
+            font-weight: 700;
+        }
+        .upload-status.active {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+        .upload-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.45);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: uploadSpin 0.8s linear infinite;
+            flex: 0 0 auto;
+        }
+        @keyframes uploadSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+            .container-box {
+                padding: 2.2rem 1.4rem;
+                margin: 1.5rem;
+            }
+            .pagina-titulo {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidebar" id="sidebar">
+        <a href="{% url 'lector_precios' %}" class="sidebar-link{% if request.resolver_match.url_name == 'lector_precios' %} active{% endif %}">Lector de Barras</a>
+        <a href="{% url 'agregar_producto' %}" class="sidebar-link{% if request.resolver_match.url_name == 'agregar_producto' %} active{% endif %}">Agregar Producto</a>
+        <a href="{% url 'mantenedor_promociones' %}" class="sidebar-link{% if request.resolver_match.url_name == 'mantenedor_promociones' %} active{% endif %}">Mantenedor de Imágenes de Promociones</a>
+        <a href="{% url 'import_export_precios' %}" class="sidebar-link{% if request.resolver_match.url_name == 'import_export_precios' %} active{% endif %}">Importar / Exportar Lista de Precios</a>
+    </nav>
+
+    <div class="contenido-principal" id="contenidoPrincipal">
+        <nav class="navbar is-light" role="navigation" aria-label="main navigation" id="mainNavbar">
+            <div class="navbar-brand">
+                <button class="sidebar-toggle-btn" id="sidebarToggle" title="Menú" type="button">
+                    <span id="sidebarIcon">&#9776;</span>
+                </button>
+            </div>
+            <div class="navbar-menu is-active" style="width:100%;">
+                <div class="navbar-start">
+                    <span class="navbar-item has-text-weight-semibold">Gestión de Lista de Precios</span>
+                </div>
+            </div>
+        </nav>
+
+        <section class="container-box">
+            <div class="pagina-titulo">
+                <h1>Importar / Exportar Lista de Precios</h1>
+                <button type="button" class="help-bubble" id="tutorialToggle" aria-expanded="false" aria-controls="tutorialPanel">
+                    <i class="fas fa-question"></i>
+                </button>
+            </div>
+
+            <div class="tutorial-panel" id="tutorialPanel">
+                <h2>¿Cómo utilizar esta sección?</h2>
+                <ol>
+                    <li>Descarga tu respaldo actual desde <strong>Exportar lista</strong>.</li>
+                    <li>Para CSV, prepara un archivo con las columnas obligatorias: <em>codigo_barras</em>, <em>nombre</em>, <em>precio</em>. Opcionales: <em>precio_vecino</em>, <em>sku</em>.</li>
+                    <li>Para Bsale, sube la lista base y la lista vecino en formato <em>.xls</em>. La base aporta el precio normal y el vecino aporta el precio vecino.</li>
+                    <li>Escoge si deseas <strong>borrar todo y volver a cargar</strong> (recomendado) o <strong>solo sobrescribir productos existentes</strong>.</li>
+                    <li>Selecciona el archivo correspondiente y presiona el botón de importación. Confirma la acción cuando se solicite.</li>
+                    <li>Revisa los mensajes de resultado para conocer filas importadas y posibles errores.</li>
+                </ol>
+            </div>
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="notification is-{{ message.tags|default:'info' }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="card-block">
+                <div class="card">
+                    <h2>Importar nueva lista</h2>
+                    <p>Sube un archivo CSV para actualizar los precios. El sistema validará los datos antes de aplicarlos.</p>
+                    <form method="post" enctype="multipart/form-data" id="importForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="import">
+                        <div class="field" style="margin-top:1rem;">
+                            <div class="file is-boxed is-fullwidth has-name">
+                                <label class="file-label">
+                                    <input class="file-input" type="file" name="csv_file" accept=".csv" required>
+                                    <span class="file-cta">
+                                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                        <span class="file-label">Seleccionar archivo CSV…</span>
+                                    </span>
+                                    <span class="file-name" id="selectedFileName">Ningún archivo seleccionado</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top:1.2rem;">
+                            <label class="label">Modo de importación</label>
+                            <label class="radio">
+                                <input type="radio" name="import_mode" value="delete" checked>
+                                Borrar todos los productos antes de importar (recomendado)
+                            </label>
+                            <p class="help-text">Se eliminarán los productos actuales y se cargará únicamente lo que venga en el archivo.</p>
+                            <label class="radio">
+                                <input type="radio" name="import_mode" value="overwrite">
+                                Sobrescribir productos existentes y mantener el resto
+                            </label>
+                            <p class="help-text">Solo se actualizarán los códigos presentes en el archivo; los demás productos permanecerán iguales.</p>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="submit" class="button is-danger is-fullwidth"><i class="fas fa-file-import" style="margin-right:0.5rem;"></i>Importar precios</button>
+                        </div>
+                    </form>
+
+                    <div class="section-divider"></div>
+                    <div class="method-label"><i class="fas fa-file-excel"></i>Importación Bsale .xls</div>
+                    <p class="bsale-hint">Sube la lista base y la lista vecino exportadas desde Bsale. Se combinan por código de barras.</p>
+                    <form method="post" enctype="multipart/form-data" id="bsaleImportForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="import_bsale">
+                        <div class="field" style="margin-top:1rem;">
+                            <label class="label">Lista base (.xls)</label>
+                            <div class="file is-boxed is-fullwidth has-name">
+                                <label class="file-label">
+                                    <input class="file-input" type="file" name="bsale_base_file" accept=".xls,.xlsx,.html,.htm" required>
+                                    <span class="file-cta">
+                                        <span class="file-icon"><i class="fas fa-file-excel"></i></span>
+                                        <span class="file-label">Seleccionar lista base…</span>
+                                    </span>
+                                    <span class="file-name">Ningún archivo seleccionado</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top:1rem;">
+                            <label class="label">Lista vecino (.xls)</label>
+                            <div class="file is-boxed is-fullwidth has-name">
+                                <label class="file-label">
+                                    <input class="file-input" type="file" name="bsale_vecino_file" accept=".xls,.xlsx,.html,.htm" required>
+                                    <span class="file-cta">
+                                        <span class="file-icon"><i class="fas fa-file-excel"></i></span>
+                                        <span class="file-label">Seleccionar lista vecino…</span>
+                                    </span>
+                                    <span class="file-name">Ningún archivo seleccionado</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top:1.2rem;">
+                            <label class="label">Modo de importación Bsale</label>
+                            <label class="radio">
+                                <input type="radio" name="bsale_import_mode" value="delete" checked>
+                                Borrar todos los productos antes de importar (recomendado)
+                            </label>
+                            <p class="help-text">Usa esto cuando quieras reemplazar la base completa con las listas de Bsale.</p>
+                            <label class="radio">
+                                <input type="radio" name="bsale_import_mode" value="overwrite">
+                                Sobrescribir productos existentes y mantener el resto
+                            </label>
+                            <p class="help-text">Actualiza solo los códigos presentes en la lista base.</p>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="submit" class="button is-warning is-fullwidth"><i class="fas fa-file-import" style="margin-right:0.5rem;"></i>Importar desde Bsale</button>
+                        </div>
+                    </form>
+                    <div class="notification is-info is-light upload-status" id="bsaleUploadStatus">
+                        <span class="upload-spinner"></span>
+                        <span id="bsaleUploadStatusText">Preparando importación Bsale...</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Exportar lista actual</h2>
+                    <p>Descarga la lista vigente en formato CSV para respaldo o edición.</p>
+                    {% if csv_preview %}
+                    <div class="csv-preview">
+                        <p class="csv-preview-info">Vista previa de columnas y datos incluidos en el archivo.</p>
+                        <div class="table-container">
+                            <table class="table is-bordered is-striped is-hoverable is-fullwidth">
+                                <thead>
+                                    <tr>
+                                        {% for columna in csv_columns %}
+                                        <th>{{ columna.label }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for fila in csv_preview %}
+                                    <tr>
+                                        {% for valor in fila %}
+                                        <td>{{ valor }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if csv_preview_more %}
+                        <p class="help-text" style="margin-left:0;">Mostrando primeras {{ csv_preview|length }} filas de {{ csv_preview_total }}.</p>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p class="help-text" style="margin-top:1rem;">Aún no hay productos cargados; el archivo se descargará vacío, pero conservará las columnas requeridas.</p>
+                    {% endif %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="export">
+                        <div class="action-buttons">
+                            <button type="submit" class="button is-link is-fullwidth"><i class="fas fa-file-download" style="margin-right:0.5rem;"></i>Exportar lista</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-hidden="true">
+        <div class="modal-card">
+            <h3 id="confirmTitle">Confirmar importación</h3>
+            <p id="confirmMessage">Los productos actuales se reemplazarán según el modo elegido. ¿Deseas continuar?</p>
+            <div class="modal-actions">
+                <button type="button" class="button is-light" id="cancelImportBtn"><i class="fas fa-times" style="margin-right:0.4rem;"></i>Cancelar</button>
+                <button type="button" class="button is-danger" id="confirmImportBtn"><i class="fas fa-check" style="margin-right:0.4rem;"></i>Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const contenidoPrincipal = document.getElementById('contenidoPrincipal');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarIcon = document.getElementById('sidebarIcon');
+        let sidebarAbierto = false;
+
+        function alternarSidebar() {
+            sidebarAbierto = !sidebarAbierto;
+            sidebar.classList.toggle('open', sidebarAbierto);
+            contenidoPrincipal.classList.toggle('shifted', sidebarAbierto);
+            sidebarIcon.innerHTML = sidebarAbierto ? '&times;' : '&#9776;';
+        }
+
+        sidebarToggle.addEventListener('click', function(evento) {
+            evento.stopPropagation();
+            alternarSidebar();
+        });
+
+        document.addEventListener('click', function(evento) {
+            if (sidebarAbierto && !sidebar.contains(evento.target) && !sidebarToggle.contains(evento.target)) {
+                alternarSidebar();
+            }
+        });
+
+        const tutorialToggle = document.getElementById('tutorialToggle');
+        const tutorialPanel = document.getElementById('tutorialPanel');
+        tutorialToggle.addEventListener('click', function() {
+            tutorialPanel.classList.toggle('active');
+            const expandido = tutorialPanel.classList.contains('active');
+            tutorialToggle.setAttribute('aria-expanded', expandido ? 'true' : 'false');
+        });
+
+        const importForm = document.getElementById('importForm');
+        const bsaleImportForm = document.getElementById('bsaleImportForm');
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmImportBtn = document.getElementById('confirmImportBtn');
+        const cancelImportBtn = document.getElementById('cancelImportBtn');
+        const bsaleUploadStatus = document.getElementById('bsaleUploadStatus');
+        const bsaleUploadStatusText = document.getElementById('bsaleUploadStatusText');
+        let formularioPendiente = null;
+
+        document.querySelectorAll('.file-input').forEach(function(input) {
+            const nameLabel = input.closest('.file').querySelector('.file-name');
+            input.addEventListener('change', function() {
+                if (input.files && input.files.length > 0) {
+                    nameLabel.textContent = input.files[0].name;
+                    nameLabel.classList.add('ready');
+                } else {
+                    nameLabel.textContent = 'Ningún archivo seleccionado';
+                    nameLabel.classList.remove('ready');
+                }
+            });
+        });
+
+        function mostrarModalConfirmacion(formulario) {
+            const modoSeleccionado = formulario.querySelector('input[type="radio"]:checked').value;
+            const esBsale = formulario.id === 'bsaleImportForm';
+            console.log('[Importación] Solicitud de confirmación', {
+                formulario: formulario.id,
+                modo: modoSeleccionado,
+                esBsale: esBsale
+            });
+
+            if (esBsale) {
+                confirmMessage.textContent = modoSeleccionado === 'delete'
+                    ? 'Se eliminarán todos los productos actuales antes de importar las listas de Bsale. La base se reemplazará con los archivos seleccionados.'
+                    : 'Solo se actualizarán los productos presentes en la lista base de Bsale. El resto permanecerá sin cambios.';
+            } else {
+                confirmMessage.textContent = modoSeleccionado === 'delete'
+                    ? 'Se eliminarán todos los productos actuales antes de importar. Esta acción reemplazará la lista con el archivo seleccionado.'
+                    : 'Solo se actualizarán los productos presentes en el archivo. El resto permanecerá sin cambios.';
+            }
+
+            formularioPendiente = formulario;
+            confirmModal.classList.add('active');
+            confirmModal.setAttribute('aria-hidden', 'false');
+        }
+
+        function prepararFormularioConfirmable(formulario) {
+            formulario.addEventListener('submit', function(evento) {
+                if (formulario.dataset.confirmed) {
+                    console.log('[Importación] Enviando formulario confirmado', {
+                        formulario: formulario.id
+                    });
+                    delete formulario.dataset.confirmed;
+                    return;
+                }
+
+                evento.preventDefault();
+                mostrarModalConfirmacion(formulario);
+            });
+        }
+
+        prepararFormularioConfirmable(importForm);
+        prepararFormularioConfirmable(bsaleImportForm);
+
+        confirmImportBtn.addEventListener('click', function() {
+            confirmModal.classList.remove('active');
+            confirmModal.setAttribute('aria-hidden', 'true');
+
+            if (formularioPendiente) {
+                const esBsale = formularioPendiente.id === 'bsaleImportForm';
+                const modoSeleccionado = formularioPendiente.querySelector('input[type="radio"]:checked').value;
+                console.log('[Importación] Confirmado por usuario', {
+                    formulario: formularioPendiente.id,
+                    modo: modoSeleccionado,
+                    tipo: esBsale ? 'bsale' : 'csv'
+                });
+
+                if (esBsale) {
+                    const baseInput = formularioPendiente.querySelector('input[name="bsale_base_file"]');
+                    const vecinoInput = formularioPendiente.querySelector('input[name="bsale_vecino_file"]');
+                    const baseNombre = baseInput && baseInput.files && baseInput.files[0] ? baseInput.files[0].name : 'sin archivo';
+                    const vecinoNombre = vecinoInput && vecinoInput.files && vecinoInput.files[0] ? vecinoInput.files[0].name : 'sin archivo';
+
+                    console.log('[Importación Bsale] Archivos seleccionados', {
+                        base: baseNombre,
+                        vecino: vecinoNombre,
+                        modo: modoSeleccionado
+                    });
+
+                    bsaleUploadStatus.classList.add('active');
+                    bsaleUploadStatus.classList.remove('is-danger', 'is-success', 'is-warning');
+                    bsaleUploadStatus.classList.add('is-info');
+                    bsaleUploadStatusText.textContent = 'Subiendo listas de Bsale y procesando datos...';
+                }
+
+                formularioPendiente.dataset.confirmed = 'true';
+                const formularioAEnviar = formularioPendiente;
+                formularioPendiente = null;
+                formularioAEnviar.submit();
+            }
+        });
+
+        cancelImportBtn.addEventListener('click', function() {
+            confirmModal.classList.remove('active');
+            confirmModal.setAttribute('aria-hidden', 'true');
+            console.log('[Importación] Cancelada por usuario');
+            formularioPendiente = null;
+        });
+
+        window.addEventListener('pageshow', function() {
+            if (bsaleUploadStatus) {
+                bsaleUploadStatus.classList.remove('active');
+            }
+        });
+
+        confirmModal.addEventListener('click', function(evento) {
+            if (evento.target === confirmModal) {
+                confirmModal.classList.remove('active');
+                confirmModal.setAttribute('aria-hidden', 'true');
+            }
+        });
+    </script>
+</body>
+</html>

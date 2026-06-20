@@ -5,3 +5,5 @@ media/
 emails_fallback/
 .env
 *.log
+backups/
+correo_pendiente_*.txt

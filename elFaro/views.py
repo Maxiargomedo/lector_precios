@@ -5,8 +5,10 @@ from .models import Producto, ImagenPromocion
 from .forms import ProductoForm
 import re
 import csv
+from io import TextIOWrapper
+from decimal import Decimal, InvalidOperation
 from django.http import HttpResponse
-from django.contrib.admin.views.decorators import staff_member_required
+from django.db import transaction
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -18,6 +20,7 @@ from django.conf import settings
 from datetime import datetime
 from urllib.parse import quote
 from urllib.parse import urlparse
+from django.views.decorators.csrf import csrf_exempt
 
 
 def limpiar_codigo_barras(codigo):
@@ -323,7 +326,6 @@ def eliminar_producto(request, producto_id):
     return redirect('lista_productos')
 
 
-@staff_member_required
 def export_productos_csv(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="productos.csv"'
@@ -350,6 +352,365 @@ def export_productos_csv(request):
         ])
     
     return response
+
+
+def _normalizar_precio(valor_crudo):
+    texto = str(valor_crudo).strip()
+    if not texto:
+        raise ValueError('Valor vacío')
+    texto = texto.replace('.', '').replace(',', '.')
+    try:
+        numero = Decimal(texto)
+    except InvalidOperation:
+        raise ValueError(f"Valor no numérico: {valor_crudo}")
+    if numero < 0:
+        raise ValueError('No se permiten valores negativos')
+    if numero > Decimal('9999999'):
+        raise ValueError('Valor fuera de rango')
+    entero = int(numero)
+    if numero != Decimal(entero):
+        raise ValueError('El valor debe ser un número entero')
+    return entero
+
+
+def _limpiar_texto_celda_bsale(valor):
+    texto = str(valor or '').replace('\xa0', ' ').strip()
+    if texto.startswith('="') and texto.endswith('"'):
+        texto = texto[2:-1]
+    elif texto.startswith('='):
+        texto = texto[1:]
+    return texto.strip()
+
+
+def _parsear_lista_bsale(archivo, nombre_lista):
+    contenido = archivo.read()
+    if isinstance(contenido, str):
+        html = contenido
+    else:
+        try:
+            html = contenido.decode('utf-8-sig')
+        except UnicodeDecodeError:
+            html = contenido.decode('latin-1', errors='replace')
+
+    sopa = BeautifulSoup(html, 'html.parser')
+    tabla_datos = None
+    for tabla in sopa.find_all('table'):
+        encabezados = [
+            _limpiar_texto_celda_bsale(celda.get_text(' ', strip=True)).lower()
+            for celda in tabla.find_all('td')[:8]
+        ]
+        if any('código barras' in encabezado or 'codigo barras' in encabezado for encabezado in encabezados) and any('precio venta' in encabezado for encabezado in encabezados):
+            tabla_datos = tabla
+            break
+
+    if tabla_datos is None:
+        raise ValueError(f'No se encontró la tabla de datos en {nombre_lista}.')
+
+    productos = {}
+    errores = []
+    filas = tabla_datos.find_all('tr')
+    for indice, fila in enumerate(filas, start=1):
+        celdas = fila.find_all('td')
+        if len(celdas) < 5:
+            continue
+
+        codigo = _limpiar_texto_celda_bsale(celdas[1].get_text(' ', strip=True))
+        sku = _limpiar_texto_celda_bsale(celdas[2].get_text(' ', strip=True))
+        nombre = _limpiar_texto_celda_bsale(celdas[3].get_text(' ', strip=True))
+        precio_texto = _limpiar_texto_celda_bsale(celdas[4].get_text(' ', strip=True))
+
+        if not codigo or codigo.lower() in {'código barras', 'codigo barras'}:
+            continue
+
+        if codigo in productos:
+            errores.append(f'Fila {indice}: código duplicado {codigo} en {nombre_lista}')
+            continue
+
+        try:
+            precio = _normalizar_precio(precio_texto)
+        except ValueError as exc:
+            errores.append(f'Fila {indice}: {exc} en {nombre_lista} ({codigo})')
+            continue
+
+        productos[codigo] = {
+            'codigo_barras': codigo[:30],
+            'sku': sku[:100] or None,
+            'nombre': nombre[:200],
+            'precio': precio,
+        }
+
+    if not productos:
+        raise ValueError(f'No se encontraron productos válidos en {nombre_lista}.')
+
+    return productos, errores
+
+
+def import_export_precios(request):
+    if request.method == 'POST':
+        accion = request.POST.get('action')
+        if accion == 'export':
+            return export_productos_csv(request)
+        if accion == 'import_bsale':
+            archivo_base = request.FILES.get('bsale_base_file')
+            archivo_vecino = request.FILES.get('bsale_vecino_file')
+            modo_importacion = request.POST.get('bsale_import_mode', 'delete')
+
+            if archivo_base is None or archivo_vecino is None:
+                messages.error(request, 'Debes seleccionar la lista base y la lista vecino de Bsale.')
+                return redirect('import_export_precios')
+
+            try:
+                productos_base, errores_base = _parsear_lista_bsale(archivo_base, 'lista base')
+                productos_vecino, errores_vecino = _parsear_lista_bsale(archivo_vecino, 'lista vecino')
+            except Exception as exc:
+                messages.error(request, f'No fue posible leer las listas de Bsale: {exc}')
+                return redirect('import_export_precios')
+
+            productos_validos = []
+            errores = errores_base + errores_vecino
+            filas_con_precio_vecino = 0
+
+            codigos_base = set(productos_base.keys())
+            codigos_vecino = set(productos_vecino.keys())
+
+            for codigo, datos_base in productos_base.items():
+                datos_producto = {
+                    'codigo_barras': datos_base['codigo_barras'],
+                    'nombre': datos_base['nombre'],
+                    'precio': datos_base['precio'],
+                    'sku': datos_base['sku'],
+                    'precio_vecino': None,
+                }
+
+                datos_vecino = productos_vecino.get(codigo)
+                if datos_vecino:
+                    datos_producto['precio_vecino'] = datos_vecino['precio']
+                    filas_con_precio_vecino += 1
+                    if not datos_producto['sku'] and datos_vecino.get('sku'):
+                        datos_producto['sku'] = datos_vecino['sku']
+                    if not datos_producto['nombre'] and datos_vecino.get('nombre'):
+                        datos_producto['nombre'] = datos_vecino['nombre']
+
+                productos_validos.append(datos_producto)
+
+            faltantes_vecino = sorted(codigos_base - codigos_vecino)
+            faltantes_base = sorted(codigos_vecino - codigos_base)
+
+            if not productos_validos:
+                messages.error(request, 'No se encontraron productos válidos en la lista base de Bsale.')
+                return redirect('import_export_precios')
+
+            creados = 0
+            actualizados = 0
+
+            try:
+                with transaction.atomic():
+                    if modo_importacion == 'delete':
+                        Producto.objects.all().delete()
+                        for producto_datos in productos_validos:
+                            Producto.objects.create(**producto_datos)
+                            creados += 1
+                    else:
+                        for producto_datos in productos_validos:
+                            codigo = producto_datos['codigo_barras']
+                            defaults = {
+                                'nombre': producto_datos['nombre'],
+                                'precio': producto_datos['precio'],
+                                'precio_vecino': producto_datos['precio_vecino'],
+                                'sku': producto_datos['sku'],
+                            }
+                            _, creado = Producto.objects.update_or_create(
+                                codigo_barras=codigo,
+                                defaults=defaults,
+                            )
+                            if creado:
+                                creados += 1
+                            else:
+                                actualizados += 1
+            except Exception as exc:
+                messages.error(request, f'No se completó la importación desde Bsale: {exc}')
+                return redirect('import_export_precios')
+
+            mensaje_base = f'Importación Bsale completada: {creados} creados'
+            if modo_importacion != 'delete':
+                mensaje_base += f', {actualizados} actualizados'
+            if filas_con_precio_vecino:
+                mensaje_base += f', {filas_con_precio_vecino} con precio vecino'
+            messages.success(request, mensaje_base + '.')
+
+            if faltantes_vecino:
+                messages.warning(request, f'{len(faltantes_vecino)} códigos de la lista base no aparecieron en la lista vecino.')
+            if faltantes_base:
+                messages.warning(request, f'{len(faltantes_base)} códigos de la lista vecino no aparecieron en la lista base y no se importaron.')
+            if errores:
+                for detalle in errores[:5]:
+                    messages.warning(request, detalle)
+                if len(errores) > 5:
+                    messages.warning(request, f'... y {len(errores) - 5} filas adicionales con problemas.')
+
+            return redirect('import_export_precios')
+        if accion == 'import':
+            archivo = request.FILES.get('csv_file')
+            modo_importacion = request.POST.get('import_mode', 'delete')
+            if archivo is None:
+                messages.error(request, 'Debes seleccionar un archivo CSV para importar.')
+                return redirect('import_export_precios')
+
+            try:
+                envoltura = TextIOWrapper(archivo.file, encoding='utf-8', newline='')
+                lector = csv.DictReader(envoltura)
+                if lector.fieldnames is None:
+                    messages.error(request, 'El archivo CSV no contiene encabezados.')
+                    return redirect('import_export_precios')
+                requeridos = {'codigo_barras', 'nombre', 'precio'}
+                columnas = {f.strip() if isinstance(f, str) else '' for f in lector.fieldnames}
+                faltantes = requeridos - columnas
+                if faltantes:
+                    faltantes_texto = ', '.join(sorted(faltantes))
+                    messages.error(request, f'El archivo CSV debe incluir las columnas: {faltantes_texto}.')
+                    return redirect('import_export_precios')
+
+                filas = list(lector)
+            except UnicodeDecodeError:
+                messages.error(request, 'El archivo debe estar codificado en UTF-8.')
+                return redirect('import_export_precios')
+            except Exception as exc:
+                messages.error(request, f'No fue posible leer el CSV: {exc}')
+                return redirect('import_export_precios')
+
+            productos_validos = []
+            errores = []
+            filas_con_precio_vecino = 0
+            codigos_en_archivo = set()
+
+            for indice, fila in enumerate(filas, start=2):
+                try:
+                    codigo = (fila.get('codigo_barras') or '').strip()
+                    if not codigo:
+                        raise ValueError('Código de barras vacío')
+                    if codigo in codigos_en_archivo:
+                        raise ValueError('Código de barras duplicado en el archivo')
+                    nombre = (fila.get('nombre') or '').strip()
+                    if not nombre:
+                        raise ValueError('Nombre vacío')
+                    precio_valor = _normalizar_precio(fila.get('precio', ''))
+
+                    datos_producto = {
+                        'codigo_barras': codigo[:30],
+                        'nombre': nombre[:200],
+                        'precio': precio_valor,
+                        'sku': (fila.get('sku') or '').strip()[:100] or None,
+                        'precio_vecino': None,
+                    }
+
+                    precio_vecino_crudo = fila.get('precio_vecino')
+                    if precio_vecino_crudo:
+                        datos_producto['precio_vecino'] = _normalizar_precio(precio_vecino_crudo)
+                        filas_con_precio_vecino += 1
+
+                    productos_validos.append(datos_producto)
+                    codigos_en_archivo.add(codigo)
+                except ValueError as error:
+                    errores.append(f'Fila {indice}: {error}')
+                except Exception as error:
+                    errores.append(f'Fila {indice}: Error inesperado ({error})')
+
+            if not productos_validos:
+                messages.error(request, 'No se encontraron filas válidas. La base de datos no se modificó.')
+                if errores:
+                    mensajes_error = errores[:5]
+                    for mensaje in mensajes_error:
+                        messages.error(request, mensaje)
+                    if len(errores) > 5:
+                        messages.error(request, f'... y {len(errores) - 5} errores adicionales.')
+                return redirect('import_export_precios')
+
+            creados = 0
+            actualizados = 0
+
+            try:
+                with transaction.atomic():
+                    if modo_importacion == 'delete':
+                        Producto.objects.all().delete()
+                        for producto_datos in productos_validos:
+                            Producto.objects.create(**producto_datos)
+                            creados += 1
+                    else:
+                        for producto_datos in productos_validos:
+                            codigo = producto_datos['codigo_barras']
+                            defaults = {
+                                'nombre': producto_datos['nombre'],
+                                'precio': producto_datos['precio'],
+                                'precio_vecino': producto_datos['precio_vecino'],
+                                'sku': producto_datos['sku'],
+                            }
+                            _, creado = Producto.objects.update_or_create(
+                                codigo_barras=codigo,
+                                defaults=defaults,
+                            )
+                            if creado:
+                                creados += 1
+                            else:
+                                actualizados += 1
+            except Exception as exc:
+                messages.error(request, f'No se completó la importación: {exc}')
+                return redirect('import_export_precios')
+
+            mensaje_base = f'Importación completada: {creados} creados'
+            if modo_importacion != 'delete':
+                mensaje_base += f', {actualizados} actualizados'
+            if filas_con_precio_vecino:
+                mensaje_base += f', {filas_con_precio_vecino} con precio vecino'
+            messages.success(request, mensaje_base + '.')
+
+            if errores:
+                for detalle in errores[:5]:
+                    messages.warning(request, detalle)
+                if len(errores) > 5:
+                    messages.warning(request, f'... y {len(errores) - 5} filas adicionales con problemas.')
+
+            return redirect('import_export_precios')
+    columnas_csv = [
+        {'key': 'codigo_barras', 'label': 'Código de barras'},
+        {'key': 'nombre', 'label': 'Nombre'},
+        {'key': 'precio', 'label': 'Precio'},
+        {'key': 'precio_vecino', 'label': 'Precio vecino'},
+        {'key': 'sku', 'label': 'SKU'},
+    ]
+
+    preview_queryset = list(
+        Producto.objects.exclude(codigo_barras__iexact='codigo_barras').order_by('nombre')[:5]
+    )
+    if not preview_queryset:
+        preview_queryset = list(Producto.objects.all().order_by('nombre')[:5])
+
+    def _formatear_entero(valor):
+        if valor is None:
+            return ''
+        return f"{valor:,}".replace(',', '.')
+
+    csv_preview = []
+    for producto in preview_queryset:
+        precio = int(producto.precio) if producto.precio is not None else None
+        precio_vecino = int(producto.precio_vecino) if producto.precio_vecino is not None else None
+        csv_preview.append([
+            producto.codigo_barras,
+            producto.nombre,
+            _formatear_entero(precio),
+            _formatear_entero(precio_vecino),
+            producto.sku or '',
+        ])
+
+    total_productos = Producto.objects.count()
+
+    contexto = {
+        'csv_columns': columnas_csv,
+        'csv_preview': csv_preview,
+        'csv_preview_total': total_productos,
+        'csv_preview_more': total_productos > len(csv_preview),
+    }
+
+    return render(request, 'elFaro/import_export_precios.html', contexto)
 
 
 def test_email(request):
@@ -815,7 +1176,7 @@ def buscar_en_google_scraping(codigo_barras, max_resultados=5):
                         time.sleep(random.uniform(3, 6))
                         continue
                     
-                    soup = BeautifulSoup(response.content, 'html.parser')
+                        precio_vecino = int(producto.precio_vecino) if producto.precio_vecino is not None else None
                     
                     # ESTRATEGIA 4: Múltiples selectores más específicos
                     resultados_encontrados = []
@@ -1135,6 +1496,61 @@ def buscar_con_duckduckgo(codigo_barras, max_resultados=3):
     return []
 
 
+@csrf_exempt
+def buscar_producto_barcode(request):
+    """
+    Busca el producto por código de barras tal cual, y si no lo encuentra, prueba quitando ceros a la izquierda.
+    """
+    barcode = request.GET.get('barcode', '').strip()
+    if not barcode:
+        return JsonResponse({'error': 'No se proporcionó código de barras'}, status=400)
+    try:
+        # Buscar tal cual
+        producto = Producto.objects.filter(codigo_barras=barcode).first()
+        # Si no lo encuentra y empieza con 0, buscar quitando ceros a la izquierda
+        if not producto and barcode.startswith('0'):
+            producto = Producto.objects.filter(codigo_barras=barcode.lstrip('0')).first()
+        if not producto:
+            return JsonResponse({'error': 'Producto no encontrado'}, status=404)
+        data = {
+            'id': producto.id,
+            'nombre': producto.nombre,
+            'codigo_barras': producto.codigo_barras,
+            'precio': str(producto.precio),
+            'precio_vecino': str(producto.precio_vecino) if producto.precio_vecino else None,
+            'sku': producto.sku or '',
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+@csrf_exempt
+def api_imagenes_promociones(request):
+    """
+    Devuelve la lista de imágenes de promociones en formato JSON.
+    """
+    imagenes = ImagenPromocion.objects.all()
+    data = []
+    for img in imagenes:
+        # Si usas ImageField, usa .url para obtener la URL pública
+        data.append({
+            'id': img.id,
+            'nombre': img.nombre,
+            'url': img.imagen.url if img.imagen else ''
+        })
+    return JsonResponse({'imagenes': data})
+
+
+
+
+def imagenes_promociones(request):
+    imagenes = []
+    for promo in ImagenPromocion.objects.all():
+        if promo.imagen:
+            imagenes.append({'url': promo.imagen.url, 'nombre': promo.nombre})
+    return JsonResponse({'imagenes': imagenes})
 
     
 

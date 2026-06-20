@@ -209,6 +209,7 @@
         <a href="{% url 'lector_precios' %}" class="sidebar-link{% if request.resolver_match.url_name == 'lector_precios' %} active{% endif %}">Lector de Barras</a>
         <a href="{% url 'agregar_producto' %}" class="sidebar-link{% if request.resolver_match.url_name == 'agregar_producto' %} active{% endif %}">Agregar Producto</a>
         <a href="{% url 'mantenedor_promociones' %}" class="sidebar-link{% if request.resolver_match.url_name == 'mantenedor_promociones' %} active{% endif %}">Mantenedor de Imágenes de Promociones</a>
+        <a href="{% url 'import_export_precios' %}" class="sidebar-link{% if request.resolver_match.url_name == 'import_export_precios' %} active{% endif %}">Importar / Exportar Lista de Precios</a>
     </nav>
     <div class="contenido-principal" id="contenidoPrincipal">
         <!-- Barra de navegación -->
