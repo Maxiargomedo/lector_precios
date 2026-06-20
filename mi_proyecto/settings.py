@@ -28,13 +28,25 @@ MEDIA_ROOT = BASE_DIR / 'media'
 SECRET_KEY = 'django-insecure-5w5wzsg7fq%$h^@!x1nk_ig^%q%u1iz$l_&rfdthwa2ep9a57e'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', '0') == '1'
 
-if DEBUG:
-    ALLOWED_HOSTS = ['*']
-else:
-    # En producción, usar hosts específicos
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.9 9', '192.168.1.101', '192.168.1.200'] 
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        'DJANGO_ALLOWED_HOSTS',
+        'lectorFaro.centrolaplace.cl,localhost,127.0.0.1'
+    ).split(',')
+    if host.strip()
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        'DJANGO_CSRF_TRUSTED_ORIGINS',
+        'https://lectorFaro.centrolaplace.cl'
+    ).split(',')
+    if origin.strip()
+]
 
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000 # O el número que necesites
@@ -58,7 +70,11 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
-SECURE_SSL_REDIRECT = False
+SECURE_SSL_REDIRECT = os.environ.get('DJANGO_SECURE_SSL_REDIRECT', '0') == '1'
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -161,6 +177,7 @@ NOTIFICATION_FROM_EMAIL = 'maximilianoargomedolopez@gmail.com'
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
